@@ -727,6 +727,12 @@ export default function App() {
   const [companyAvatar, setCompanyAvatar] = useState(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
+  // Cookie consent
+  const [cookieAccepted, setCookieAccepted] = useState(() => localStorage.getItem("hirevo_cookie") === "1");
+
+  // Live worker count for landing page
+  const [liveWorkerCount, setLiveWorkerCount] = useState(WORKERS.length);
+
   // Company stats
   const [companyStats, setCompanyStats] = useState({ profilesViewed: 0, searches: 0, unlocks: 0 });
 
@@ -912,6 +918,20 @@ export default function App() {
       .catch(() => {}); // Silent fail — keep default EN
   }, []);
 
+  // ── LIVE WORKER COUNT ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchCount = async () => {
+      const { count } = await supabase.from("workers")
+        .select("*", { count:"exact", head:true })
+        .eq("is_visible", true);
+      if (count !== null) setLiveWorkerCount(WORKERS.length + count);
+    };
+    fetchCount();
+    // Refresh every 60 seconds while on landing page
+    const interval = setInterval(fetchCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   // ── TRACK SEARCH APPEARANCES ──────────────────────────────────────────────
   useEffect(() => {
     if (screen !== "companyBrowse" || !supaUser) return;
@@ -955,12 +975,203 @@ export default function App() {
   });
 
   const wi = workerProfile ? workerProfile.name.split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2) : "??";
-  const go = (s) => setScreen(s);
+  const SCREEN_MAP = {
+    "": "landing", "landing": "landing",
+    "privacy": "privacy", "terms": "terms",
+    "login": "login",
+    "register-worker": "workerReg", "register-company": "companyReg",
+    "worker-dashboard": "workerDash", "worker-account": "workerAccount",
+    "company-dashboard": "companyDash", "company-browse": "companyBrowse",
+    "company-account": "companyAccount",
+  };
+
+  const SCREEN_TO_HASH = {
+    "landing": "", "privacy": "privacy", "terms": "terms",
+    "login": "login",
+    "workerReg": "register-worker", "companyReg": "register-company",
+    "workerDash": "worker-dashboard", "workerAccount": "worker-account",
+    "companyDash": "company-dashboard", "companyBrowse": "company-browse",
+    "companyAccount": "company-account",
+  };
+
+  const go = (s) => {
+    setScreen(s);
+    const hash = SCREEN_TO_HASH[s] ?? s;
+    window.location.hash = hash ? `/${hash}` : "";
+  };
+
+  // Sync URL hash to screen on load
+  useEffect(() => {
+    const getHash = () => window.location.hash.replace(/^#\/?/, "");
+    const applyHash = (hash) => {
+      const mapped = SCREEN_MAP[hash];
+      if (mapped) setScreen(mapped);
+    };
+    applyHash(getHash());
+    const onHash = () => applyHash(getHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
   const navProps = { lang, setLang, onLogoClick:()=>go("landing") };
+
+  const CookieBanner = () => !cookieAccepted ? (
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4" style={{ background:"rgba(15,23,42,0.97)", borderTop:"1px solid rgba(79,70,229,0.4)" }}>
+      <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <p className="text-xs text-slate-300 flex-1 leading-relaxed">
+          {lang==="RO" ? "Folosim cookie-uri funcționale și analitice anonimizate pentru a îmbunătăți platforma. Nu folosim cookie-uri de publicitate."
+            : lang==="NL" ? "Wij gebruiken functionele en geanonimiseerde analytische cookies om het platform te verbeteren. Wij gebruiken geen advertentiecookies."
+            : "We use functional and anonymised analytics cookies to improve the platform. We do not use advertising cookies."}
+          {" "}<button onClick={()=>go("privacy")} className="underline text-indigo-400 hover:text-indigo-300">
+            {lang==="RO"?"Politică de Confidențialitate":lang==="NL"?"Privacybeleid":"Privacy Policy"}
+          </button>
+        </p>
+        <button onClick={()=>{ localStorage.setItem("hirevo_cookie","1"); setCookieAccepted(true); }}
+          className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-black text-white"
+          style={{ background:C.indigo }}>
+          {lang==="RO"?"Accept":lang==="NL"?"Accepteren":"Accept"}
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  // ── PRIVACY POLICY ────────────────────────────────────────────────────────
+  if (screen === "privacy") return (
+    <div className="min-h-screen bg-slate-50" style={{ fontFamily:"system-ui,sans-serif" }}>
+      <CookieBanner />
+      <Nav {...navProps} back={() => go("landing")} backLabel={t.back} title="Privacy Policy" />
+      <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-5 text-sm text-slate-600 leading-relaxed">
+          {lang === "RO" ? <>
+            <h1 className="text-xl font-black text-slate-900">Politică de Confidențialitate</h1>
+            <p className="text-xs text-slate-400">Ultima actualizare: 17 iunie 2026</p>
+            <p>Hirevo (hirevo.nl) este operat de Hirevo B.V., o companie înregistrată în Olanda. Această politică explică cum colectăm, folosim și protejăm datele tale personale.</p>
+            <h2 className="font-black text-slate-800 mt-4">1. Ce date colectăm</h2>
+            <p>Pentru <strong>muncitori</strong>: nume, email, telefon, locație, sector, experiență, abilități, limbi vorbite, disponibilitate și preferințe de angajare. Pentru <strong>companii</strong>: numele companiei, email, număr de telefon, sector și țara de destinație.</p>
+            <h2 className="font-black text-slate-800">2. De ce colectăm aceste date</h2>
+            <p>Datele sunt necesare pentru funcționarea platformei — crearea profilurilor, conectarea muncitorilor cu companiile și furnizarea statisticilor de profil. Nu vindem datele tale unor terțe părți.</p>
+            <h2 className="font-black text-slate-800">3. Temeiul legal (GDPR)</h2>
+            <p>Procesăm datele pe baza consimțământului tău explicit (art. 6(1)(a) GDPR) și a contractului dintre tine și Hirevo (art. 6(1)(b) GDPR).</p>
+            <h2 className="font-black text-slate-800">4. Stocare și securitate</h2>
+            <p>Datele sunt stocate în Supabase (UE — Frankfurt). Folosim criptare SSL și autentificare securizată. Parolele nu sunt stocate în text simplu.</p>
+            <h2 className="font-black text-slate-800">5. Drepturile tale</h2>
+            <p>Ai dreptul de acces, rectificare, ștergere, portabilitate și opoziție. Poți șterge contul oricând din setările platformei. Pentru orice solicitare: <strong>privacy@hirevo.nl</strong></p>
+            <h2 className="font-black text-slate-800">6. Cookie-uri</h2>
+            <p>Folosim cookie-uri funcționale stricte (sesiune) și cookie-uri analitice (Vercel Analytics, anonimizate). Nu folosim cookie-uri de publicitate.</p>
+            <h2 className="font-black text-slate-800">7. Contact</h2>
+            <p>Hirevo B.V. — <strong>privacy@hirevo.nl</strong></p>
+          </> : lang === "NL" ? <>
+            <h1 className="text-xl font-black text-slate-900">Privacybeleid</h1>
+            <p className="text-xs text-slate-400">Laatst bijgewerkt: 17 juni 2026</p>
+            <p>Hirevo (hirevo.nl) wordt beheerd door Hirevo B.V., een in Nederland geregistreerd bedrijf. Dit beleid legt uit hoe wij uw persoonsgegevens verzamelen, gebruiken en beschermen.</p>
+            <h2 className="font-black text-slate-800 mt-4">1. Welke gegevens we verzamelen</h2>
+            <p>Voor <strong>werknemers</strong>: naam, e-mail, telefoon, locatie, sector, ervaring, vaardigheden, talen, beschikbaarheid en werkvoorkeur. Voor <strong>bedrijven</strong>: bedrijfsnaam, e-mail, telefoonnummer, sector en bestemmingsland.</p>
+            <h2 className="font-black text-slate-800">2. Waarom we deze gegevens verzamelen</h2>
+            <p>Gegevens zijn nodig voor het functioneren van het platform — het aanmaken van profielen, het verbinden van werknemers met bedrijven en het leveren van profielstatistieken. Wij verkopen uw gegevens niet aan derden.</p>
+            <h2 className="font-black text-slate-800">3. Rechtsgrondslag (AVG)</h2>
+            <p>Wij verwerken gegevens op basis van uw uitdrukkelijke toestemming (art. 6(1)(a) AVG) en de overeenkomst tussen u en Hirevo (art. 6(1)(b) AVG).</p>
+            <h2 className="font-black text-slate-800">4. Opslag en beveiliging</h2>
+            <p>Gegevens worden opgeslagen in Supabase (EU — Frankfurt). Wij gebruiken SSL-versleuteling en beveiligde authenticatie. Wachtwoorden worden niet in platte tekst opgeslagen.</p>
+            <h2 className="font-black text-slate-800">5. Uw rechten</h2>
+            <p>U heeft recht op inzage, rectificatie, verwijdering, overdraagbaarheid en bezwaar. U kunt uw account op elk moment verwijderen via de instellingen. Voor verzoeken: <strong>privacy@hirevo.nl</strong></p>
+            <h2 className="font-black text-slate-800">6. Cookies</h2>
+            <p>Wij gebruiken strikt functionele cookies (sessie) en analytische cookies (Vercel Analytics, geanonimiseerd). Wij gebruiken geen advertentiecookies.</p>
+            <h2 className="font-black text-slate-800">7. Contact</h2>
+            <p>Hirevo B.V. — <strong>privacy@hirevo.nl</strong></p>
+          </> : <>
+            <h1 className="text-xl font-black text-slate-900">Privacy Policy</h1>
+            <p className="text-xs text-slate-400">Last updated: 17 June 2026</p>
+            <p>Hirevo (hirevo.nl) is operated by Hirevo B.V., a company registered in the Netherlands. This policy explains how we collect, use and protect your personal data.</p>
+            <h2 className="font-black text-slate-800 mt-4">1. What data we collect</h2>
+            <p>For <strong>workers</strong>: name, email, phone, location, sector, experience, skills, languages, availability and employment preferences. For <strong>companies</strong>: company name, email, phone number, sector and destination country.</p>
+            <h2 className="font-black text-slate-800">2. Why we collect this data</h2>
+            <p>Data is necessary for the platform to function — creating profiles, connecting workers with companies and providing profile statistics. We do not sell your data to third parties.</p>
+            <h2 className="font-black text-slate-800">3. Legal basis (GDPR)</h2>
+            <p>We process data based on your explicit consent (Art. 6(1)(a) GDPR) and the contract between you and Hirevo (Art. 6(1)(b) GDPR).</p>
+            <h2 className="font-black text-slate-800">4. Storage and security</h2>
+            <p>Data is stored in Supabase (EU — Frankfurt). We use SSL encryption and secure authentication. Passwords are not stored in plain text.</p>
+            <h2 className="font-black text-slate-800">5. Your rights</h2>
+            <p>You have the right to access, rectify, erase, port and object to your data. You can delete your account at any time from the platform settings. For any request: <strong>privacy@hirevo.nl</strong></p>
+            <h2 className="font-black text-slate-800">6. Cookies</h2>
+            <p>We use strictly functional cookies (session) and analytics cookies (Vercel Analytics, anonymised). We do not use advertising cookies.</p>
+            <h2 className="font-black text-slate-800">7. Contact</h2>
+            <p>Hirevo B.V. — <strong>privacy@hirevo.nl</strong></p>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── TERMS OF SERVICE ──────────────────────────────────────────────────────
+  if (screen === "terms") return (
+    <div className="min-h-screen bg-slate-50" style={{ fontFamily:"system-ui,sans-serif" }}>
+      <CookieBanner />
+      <Nav {...navProps} back={() => go("landing")} backLabel={t.back} title="Terms of Service" />
+      <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-5 text-sm text-slate-600 leading-relaxed">
+          {lang === "RO" ? <>
+            <h1 className="text-xl font-black text-slate-900">Termeni și Condiții</h1>
+            <p className="text-xs text-slate-400">Ultima actualizare: 17 iunie 2026</p>
+            <p>Prin accesarea Hirevo (hirevo.nl) ești de acord cu acești termeni. Dacă nu ești de acord, nu folosi platforma.</p>
+            <h2 className="font-black text-slate-800 mt-4">1. Descrierea serviciului</h2>
+            <p>Hirevo este o platformă B2B care conectează direct muncitori din UE cu companii din Olanda și Germania, fără intermediari. Platforma oferă profiluri gratuite pentru muncitori și acces la profiluri pentru companii.</p>
+            <h2 className="font-black text-slate-800">2. Conturi și responsabilitate</h2>
+            <p>Ești responsabil pentru acuratețea informațiilor din profilul tău. Este interzisă crearea de conturi false, spam sau orice activitate frauduloasă. Hirevo poate suspenda sau șterge conturi care încalcă acești termeni.</p>
+            <h2 className="font-black text-slate-800">3. Profiluri de muncitori</h2>
+            <p>Muncitorii pot crea un profil gratuit. Prin crearea unui profil, ești de acord ca informațiile să fie vizibile companiilor înregistrate pe platformă. Poți șterge profilul oricând.</p>
+            <h2 className="font-black text-slate-800">4. Conturi de companie</h2>
+            <p>Companiile pot crea un cont gratuit și răsfoi profilurile. Accesul la datele de contact va fi disponibil prin credite sau abonament (lansare viitoare). Companiile sunt responsabile pentru utilizarea corectă a datelor de contact.</p>
+            <h2 className="font-black text-slate-800">5. Limitarea răspunderii</h2>
+            <p>Hirevo nu garantează angajarea și nu este parte în contractele dintre muncitori și companii. Nu suntem răspunzători pentru decizii de angajare, dispute sau pierderi rezultate din utilizarea platformei.</p>
+            <h2 className="font-black text-slate-800">6. Modificări</h2>
+            <p>Ne rezervăm dreptul de a modifica acești termeni. Utilizarea continuă a platformei după modificări constituie acceptul noilor termeni.</p>
+            <h2 className="font-black text-slate-800">7. Contact</h2>
+            <p>Hirevo B.V. — <strong>legal@hirevo.nl</strong></p>
+          </> : lang === "NL" ? <>
+            <h1 className="text-xl font-black text-slate-900">Algemene Voorwaarden</h1>
+            <p className="text-xs text-slate-400">Laatst bijgewerkt: 17 juni 2026</p>
+            <p>Door Hirevo (hirevo.nl) te gebruiken, gaat u akkoord met deze voorwaarden. Als u het hier niet mee eens bent, gebruik het platform dan niet.</p>
+            <h2 className="font-black text-slate-800 mt-4">1. Beschrijving van de dienst</h2>
+            <p>Hirevo is een B2B-platform dat EU-werknemers rechtstreeks verbindt met bedrijven in Nederland en Duitsland, zonder tussenpersonen. Het platform biedt gratis profielen voor werknemers en toegang tot profielen voor bedrijven.</p>
+            <h2 className="font-black text-slate-800">2. Accounts en verantwoordelijkheid</h2>
+            <p>U bent verantwoordelijk voor de juistheid van de informatie in uw profiel. Het aanmaken van valse accounts, spam of frauduleuze activiteiten is verboden. Hirevo kan accounts opschorten of verwijderen die deze voorwaarden schenden.</p>
+            <h2 className="font-black text-slate-800">3. Werknemersprofielen</h2>
+            <p>Werknemers kunnen gratis een profiel aanmaken. Door een profiel aan te maken, gaat u ermee akkoord dat uw informatie zichtbaar is voor bedrijven die op het platform zijn geregistreerd. U kunt uw profiel op elk moment verwijderen.</p>
+            <h2 className="font-black text-slate-800">4. Bedrijfsaccounts</h2>
+            <p>Bedrijven kunnen gratis een account aanmaken en profielen bekijken. Toegang tot contactgegevens zal beschikbaar zijn via credits of abonnement (toekomstige lancering). Bedrijven zijn verantwoordelijk voor correct gebruik van contactgegevens.</p>
+            <h2 className="font-black text-slate-800">5. Beperking van aansprakelijkheid</h2>
+            <p>Hirevo garandeert geen aanwerving en is geen partij bij contracten tussen werknemers en bedrijven. Wij zijn niet verantwoordelijk voor aanwervingsbeslissingen, geschillen of verliezen die voortvloeien uit het gebruik van het platform.</p>
+            <h2 className="font-black text-slate-800">6. Wijzigingen</h2>
+            <p>Wij behouden ons het recht voor deze voorwaarden te wijzigen. Voortgezet gebruik van het platform na wijzigingen betekent acceptatie van de nieuwe voorwaarden.</p>
+            <h2 className="font-black text-slate-800">7. Contact</h2>
+            <p>Hirevo B.V. — <strong>legal@hirevo.nl</strong></p>
+          </> : <>
+            <h1 className="text-xl font-black text-slate-900">Terms of Service</h1>
+            <p className="text-xs text-slate-400">Last updated: 17 June 2026</p>
+            <p>By accessing Hirevo (hirevo.nl) you agree to these terms. If you do not agree, do not use the platform.</p>
+            <h2 className="font-black text-slate-800 mt-4">1. Description of service</h2>
+            <p>Hirevo is a B2B platform that directly connects EU workers with companies in the Netherlands and Germany, without intermediaries. The platform provides free profiles for workers and access to profiles for companies.</p>
+            <h2 className="font-black text-slate-800">2. Accounts and responsibility</h2>
+            <p>You are responsible for the accuracy of the information in your profile. Creating fake accounts, spam or any fraudulent activity is prohibited. Hirevo may suspend or delete accounts that violate these terms.</p>
+            <h2 className="font-black text-slate-800">3. Worker profiles</h2>
+            <p>Workers can create a free profile. By creating a profile, you agree that your information will be visible to companies registered on the platform. You can delete your profile at any time.</p>
+            <h2 className="font-black text-slate-800">4. Company accounts</h2>
+            <p>Companies can create a free account and browse profiles. Access to contact details will be available via credits or subscription (future launch). Companies are responsible for the correct use of contact details.</p>
+            <h2 className="font-black text-slate-800">5. Limitation of liability</h2>
+            <p>Hirevo does not guarantee employment and is not a party to contracts between workers and companies. We are not responsible for hiring decisions, disputes or losses resulting from the use of the platform.</p>
+            <h2 className="font-black text-slate-800">6. Changes</h2>
+            <p>We reserve the right to modify these terms. Continued use of the platform after changes constitutes acceptance of the new terms.</p>
+            <h2 className="font-black text-slate-800">7. Contact</h2>
+            <p>Hirevo B.V. — <strong>legal@hirevo.nl</strong></p>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
 
   // ── LANDING ────────────────────────────────────────────────────────────────
   if (screen === "landing") return (
     <div className="min-h-screen" style={{ background:C.navy, fontFamily:"system-ui,sans-serif" }}>
+      <CookieBanner />
       <Nav {...navProps} />
 
       {/* Geo-detection notice */}
@@ -1048,12 +1259,25 @@ export default function App() {
         </button>
 
         <div className="flex justify-center gap-12">
-          {[{ n:WORKERS.length, l:t.verifiedProfilesLabel },{ n:"25", l:t.euLanguagesLabel },{ n:"0%", l:t.agencyFeeLabel }].map((s,i) => (
+          {[{ n:liveWorkerCount, l:t.verifiedProfilesLabel },{ n:"25", l:t.euLanguagesLabel },{ n:"0%", l:t.agencyFeeLabel }].map((s,i) => (
             <div key={i} className="text-center">
               <div className="font-black text-3xl text-white">{s.n}</div>
               <div className="text-xs text-slate-500 mt-1">{s.l}</div>
             </div>
           ))}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-center gap-4 pt-4 border-t border-slate-800">
+          <button onClick={()=>go("privacy")} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            {lang==="RO"?"Politică de Confidențialitate":lang==="NL"?"Privacybeleid":"Privacy Policy"}
+          </button>
+          <span className="text-slate-700">·</span>
+          <button onClick={()=>go("terms")} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            {lang==="RO"?"Termeni și Condiții":lang==="NL"?"Algemene Voorwaarden":"Terms of Service"}
+          </button>
+          <span className="text-slate-700">·</span>
+          <span className="text-xs text-slate-600">© 2026 Hirevo B.V.</span>
         </div>
       </div>
     </div>
