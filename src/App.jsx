@@ -164,6 +164,10 @@ const T = {
     emailExamplePh:"you@email.com", kvkExamplePh:"e.g. 12345678", addressExamplePh:"Street, City, Country",
     idScanNotice:"After creating your profile, complete biometric ID scan to receive the ID Verified badge.",
     freeToBrowseDesc:"Free to browse all profiles. Pay only when you unlock contact details.",
+    loginTitle:"Sign In", loginEmail:"Email address", loginPassword:"Password",
+    loginBtn:"Sign In", loginNoAccount:"No account yet?", loginForgot:"Forgot password?",
+    loginResetSent:"Password reset email sent — check your inbox.",
+    alreadyHaveAccount:"Already have an account? Sign in",
   },
   RO: {
     landingTitle:"Acces direct la talent european.",
@@ -283,6 +287,10 @@ const T = {
     emailExamplePh:"tu@email.com", kvkExamplePh:"ex. 12345678", addressExamplePh:"Stradă, Oraș, Țară",
     idScanNotice:"După crearea profilului, finalizează scanarea biometrică ID pentru a primi badge-ul ID Verificat.",
     freeToBrowseDesc:"Răsfoiești toate profilurile gratuit. Plătești doar când deblochezi datele de contact.",
+    loginTitle:"Conectare", loginEmail:"Adresă de email", loginPassword:"Parolă",
+    loginBtn:"Conectare", loginNoAccount:"Nu ai cont?", loginForgot:"Ai uitat parola?",
+    loginResetSent:"Email de resetare trimis — verifică inbox-ul.",
+    alreadyHaveAccount:"Ai deja cont? Conectează-te",
   },
   NL: {
     landingTitle:"Directe toegang tot EU-talent.",
@@ -402,6 +410,10 @@ const T = {
     emailExamplePh:"jij@email.com", kvkExamplePh:"bijv. 12345678", addressExamplePh:"Straat, Stad, Land",
     idScanNotice:"Voltooi na het aanmaken van je profiel de biometrische ID-scan om de ID-gecontroleerd badge te ontvangen.",
     freeToBrowseDesc:"Gratis om alle profielen te bekijken. Betaal alleen wanneer je contactgegevens ontgrendelt.",
+    loginTitle:"Inloggen", loginEmail:"E-mailadres", loginPassword:"Wachtwoord",
+    loginBtn:"Inloggen", loginNoAccount:"Nog geen account?", loginForgot:"Wachtwoord vergeten?",
+    loginResetSent:"Wachtwoord reset e-mail verzonden — controleer je inbox.",
+    alreadyHaveAccount:"Al een account? Inloggen",
   },
 };
 const getLang = c => T[c] || T.EN;
@@ -564,11 +576,44 @@ export default function App() {
   const [supaUser, setSupaUser] = useState(null);
 
   useEffect(() => {
+    const loadProfile = async (user) => {
+      if (!user) return;
+      const role = user.user_metadata?.role;
+      if (role === "worker") {
+        const { data } = await supabase.from("workers").select("*").eq("user_id", user.id).single();
+        if (data) {
+          setWorkerProfile({
+            name: data.name, email: data.email, role: data.role, sector: data.sector,
+            experience: data.experience, currentLoc: data.current_loc, currentCity: data.current_city,
+            openToRelocation: data.open_to_relocation, targetCountries: data.target_countries || [],
+            needsHousing: data.needs_housing, availability: data.availability,
+            employmentType: data.employment_type, availableFrom: data.available_from,
+            bio: data.bio, phone: data.phone, skills: data.skills || [],
+            languages: (data.languages||[]).map(l=>({name:l})),
+          });
+          setProfileVisible(data.is_visible ?? true);
+          go("workerDash");
+        }
+      } else if (role === "company") {
+        const { data } = await supabase.from("companies").select("*").eq("user_id", user.id).single();
+        if (data) {
+          setCompanyProfile({
+            compName: data.comp_name, email: data.email, kvk: data.kvk,
+            phone: data.phone, address: data.address,
+            destCountry: data.dest_country, industry: data.industry,
+          });
+          go("companyDash");
+        }
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSupaUser(session?.user ?? null);
+      if (session?.user) loadProfile(session.user);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSupaUser(session?.user ?? null);
+      if (session?.user) loadProfile(session.user);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -615,6 +660,11 @@ export default function App() {
   const [housingRequests, setHousingRequests] = useState([]);
   const [housingSubmitted, setHousingSubmitted] = useState(false);
 
+  // Login form
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginResetSent, setLoginResetSent] = useState(false);
+
   // Modals
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [showPricing, setShowPricing] = useState(false);
@@ -642,13 +692,24 @@ export default function App() {
     go("workerAccount");
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     setSaveStatus("saving");
-    setTimeout(() => {
-      setWorkerProfile({ ...editForm });
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus(null), 2500);
-    }, 600);
+    if (supaUser) {
+      await supabase.from("workers").update({
+        name: editForm.name, role: editForm.role, sector: editForm.sector,
+        experience: editForm.experience, current_loc: editForm.currentLoc,
+        current_city: editForm.currentCity, open_to_relocation: editForm.openToRelocation,
+        target_countries: editForm.targetCountries, needs_housing: editForm.needsHousing,
+        availability: editForm.availability, employment_type: editForm.employmentType,
+        available_from: editForm.availableFrom, bio: editForm.bio,
+        phone: editForm.phone, skills: editForm.skills,
+        languages: (editForm.languages||[]).map(l=>l.name),
+        is_visible: profileVisible,
+      }).eq("user_id", supaUser.id);
+    }
+    setWorkerProfile({ ...editForm });
+    setSaveStatus("saved");
+    setTimeout(() => setSaveStatus(null), 2500);
   };
 
   const openCompanyEdit = (section) => {
@@ -659,13 +720,18 @@ export default function App() {
     go("companyAccount");
   };
 
-  const saveCompanyEdit = () => {
+  const saveCompanyEdit = async () => {
     setCompanySaveStatus("saving");
-    setTimeout(() => {
-      setCompanyProfile({ ...companyEditForm });
-      setCompanySaveStatus("saved");
-      setTimeout(() => setCompanySaveStatus(null), 2500);
-    }, 600);
+    if (supaUser) {
+      await supabase.from("companies").update({
+        comp_name: companyEditForm.compName, phone: companyEditForm.phone,
+        address: companyEditForm.address, dest_country: companyEditForm.destCountry,
+        industry: companyEditForm.industry,
+      }).eq("user_id", supaUser.id);
+    }
+    setCompanyProfile({ ...companyEditForm });
+    setCompanySaveStatus("saved");
+    setTimeout(() => setCompanySaveStatus(null), 2500);
   };
 
   const hasAccess = companyPlan !== null || credits >= 5;
@@ -861,6 +927,11 @@ export default function App() {
           </div>
         </div>
 
+        <button onClick={()=>{ setAuthError(""); setAuthSuccess(""); setLoginEmail(""); setLoginPassword(""); setLoginResetSent(false); go("login"); }}
+          className="w-full py-2.5 rounded-xl text-sm font-bold border border-slate-600 text-slate-400 hover:text-white hover:border-slate-400 transition-colors">
+          {t.alreadyHaveAccount}
+        </button>
+
         <div className="flex justify-center gap-12">
           {[{ n:WORKERS.length, l:t.verifiedProfilesLabel },{ n:"25", l:t.euLanguagesLabel },{ n:"0%", l:t.agencyFeeLabel }].map((s,i) => (
             <div key={i} className="text-center">
@@ -868,6 +939,54 @@ export default function App() {
               <div className="text-xs text-slate-500 mt-1">{s.l}</div>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── LOGIN SCREEN ──────────────────────────────────────────────────────────
+  if (screen === "login") return (
+    <div className="min-h-screen bg-slate-50" style={{ fontFamily:"system-ui,sans-serif" }}>
+      <Nav {...navProps} back={() => go("landing")} backLabel={t.back} title={t.loginTitle} />
+      <div className="max-w-md mx-auto px-4 py-10">
+        <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
+          <h2 className="text-xl font-black" style={{ color:C.navy }}>{t.loginTitle}</h2>
+          {authError && <div className="rounded-xl px-3 py-2.5 text-sm font-bold" style={{ background:"#FEF2F2", color:"#991B1B" }}>{authError}</div>}
+          {authSuccess && <div className="rounded-xl px-3 py-2.5 text-sm font-bold" style={{ background:"#F0FDF4", color:"#166534" }}>{authSuccess}</div>}
+          {loginResetSent && <div className="rounded-xl px-3 py-2.5 text-sm font-bold" style={{ background:"#EEF2FF", color:C.indigo }}>{t.loginResetSent}</div>}
+          <input className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400"
+            type="email" placeholder={t.loginEmail} value={loginEmail}
+            onChange={e=>setLoginEmail(e.target.value)} />
+          <input className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400"
+            type="password" placeholder={t.loginPassword} value={loginPassword}
+            onChange={e=>setLoginPassword(e.target.value)}
+            onKeyDown={e=>{ if(e.key==="Enter") document.getElementById("loginBtn").click(); }} />
+          <button id="loginBtn" disabled={authLoading}
+            onClick={async()=>{
+              setAuthError(""); setAuthSuccess("");
+              if (!loginEmail.trim() || !loginPassword.trim()) { setAuthError("Please fill in email and password."); return; }
+              setAuthLoading(true);
+              const { error } = await supabase.auth.signInWithPassword({
+                email: loginEmail.trim().toLowerCase(), password: loginPassword
+              });
+              setAuthLoading(false);
+              if (error) { setAuthError(error.message); }
+            }}
+            className="w-full py-3 rounded-xl text-white font-black text-sm disabled:opacity-60"
+            style={{ background:C.indigo }}>
+            {authLoading ? "Signing in..." : t.loginBtn}
+          </button>
+          <button onClick={async()=>{
+            if (!loginEmail.trim()) { setAuthError("Enter your email first."); return; }
+            setAuthError("");
+            await supabase.auth.resetPasswordForEmail(loginEmail.trim(), { redirectTo:"https://hirevo.nl" });
+            setLoginResetSent(true);
+          }} className="w-full text-xs text-slate-400 font-semibold py-1">
+            {t.loginForgot}
+          </button>
+          <button onClick={()=>go("landing")} className="w-full text-xs text-slate-400 font-semibold py-1">
+            {t.loginNoAccount}
+          </button>
         </div>
       </div>
     </div>
@@ -1336,7 +1455,7 @@ export default function App() {
             style={{ color:C.indigo }}>
             <Settings className="w-4 h-4" />{t.myAccount}
           </button>
-          <button onClick={()=>go("landing")}
+          <button onClick={async()=>{ await supabase.auth.signOut(); setWorkerProfile(null); go("landing"); }}
             className="flex-1 py-3 rounded-xl text-sm font-semibold text-slate-500 border border-slate-200 bg-white flex items-center justify-center gap-2">
             <LogOut className="w-4 h-4" />{t.logout}
           </button>
@@ -1664,7 +1783,14 @@ export default function App() {
                         className="flex-1 py-2 rounded-xl text-sm font-bold border border-slate-200 bg-white text-slate-600">
                         {t.cancelEdit}
                       </button>
-                      <button onClick={() => { setWorkerProfile(null); go("landing"); }}
+                      <button onClick={async () => {
+                        if (supaUser) {
+                          await supabase.from("workers").delete().eq("user_id", supaUser.id);
+                          await supabase.auth.admin?.deleteUser?.(supaUser.id);
+                          await supabase.auth.signOut();
+                        }
+                        setWorkerProfile(null); go("landing");
+                      }}
                         className="flex-1 py-2 rounded-xl text-sm font-bold text-white"
                         style={{ background:"#DC2626" }}>
                         {t.deleteBtn}
@@ -1789,7 +1915,7 @@ export default function App() {
               style={{ color:C.indigo }}>
               <Settings className="w-3.5 h-3.5" />{t.companyMyAccount}
             </button>
-            <button onClick={()=>go("landing")}
+            <button onClick={async()=>{ await supabase.auth.signOut(); setCompanyProfile(null); go("landing"); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors">
               <LogOut className="w-3.5 h-3.5" />{t.logout}
             </button>
@@ -2686,7 +2812,13 @@ export default function App() {
                         className="flex-1 py-2 rounded-xl text-sm font-bold border border-slate-200 bg-white text-slate-600">
                         {t.cancelEdit}
                       </button>
-                      <button onClick={()=>{ setCompanyProfile(null); go("landing"); }}
+                      <button onClick={async ()=>{ 
+                        if (supaUser) {
+                          await supabase.from("companies").delete().eq("user_id", supaUser.id);
+                          await supabase.auth.signOut();
+                        }
+                        setCompanyProfile(null); go("landing");
+                      }}
                         className="flex-1 py-2 rounded-xl text-sm font-bold text-white"
                         style={{ background:"#DC2626" }}>
                         {t.deleteCompanyBtn}
