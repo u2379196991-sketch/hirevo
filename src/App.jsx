@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 import {
   Search, Star, X, CheckCircle, ChevronDown, Users, Clock,
   Mail, Home, Eye, TrendingUp, LogOut, Shield, Flag,
@@ -6,6 +7,32 @@ import {
   ArrowRight, Camera, Lock, Unlock, SlidersHorizontal,
   MapPin, ChevronUp, Edit2, Settings, Trash2, ToggleLeft, ToggleRight, Save
 } from "lucide-react";
+
+// ─── SUPABASE ─────────────────────────────────────────────────────────────────
+const supabase = createClient(
+  "https://avonnuereepruxwntbmk.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2b25udWVyZWVwcnV4d250Ym1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MjY1MTQsImV4cCI6MjA5NzIwMjUxNH0.XqT_Y0rTzD7buqjuUfyDPTkdTtijezCOpYR1DzjjiZg"
+);
+
+// ─── BLOCKED TEMP EMAIL DOMAINS ───────────────────────────────────────────────
+const TEMP_EMAIL_DOMAINS = [
+  "mailinator.com","guerrillamail.com","10minutemail.com","tempmail.com",
+  "throwaway.email","yopmail.com","sharklasers.com","guerrillamailblock.com",
+  "grr.la","guerrillamail.info","guerrillamail.biz","guerrillamail.de",
+  "guerrillamail.net","guerrillamail.org","spam4.me","trashmail.com",
+  "trashmail.me","trashmail.net","dispostable.com","mailnull.com",
+  "spamgourmet.com","spamgourmet.net","spamgourmet.org","spamherelots.com",
+  "tempr.email","discard.email","maildrop.cc","fakeinbox.com","mailcatch.com",
+  "tempemail.co","throwam.com","spamfree24.org","mailnew.com","getairmail.com",
+  "filzmail.com","throwam.com","zetmail.com","mail-temp.com","tempinbox.co.uk",
+  "getnada.com","mohmal.com","owlpic.com","spamgrap.com","discard.email",
+  "tempail.com","haltospam.com","spamhere.net","fakemail.net","mailscrap.com"
+];
+
+const isTempEmail = (email) => {
+  const domain = email.split("@")[1]?.toLowerCase();
+  return TEMP_EMAIL_DOMAINS.includes(domain);
+};
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const C = { navy:"#0F172A", indigo:"#4F46E5", indigoLight:"#818CF8" };
@@ -530,6 +557,22 @@ export default function App() {
   const [langInput, setLangInput] = useState("");
   const [bumpStatus, setBumpStatus] = useState(null);
 
+  // ── SUPABASE AUTH STATE ────────────────────────────────────────────────────
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [authSuccess, setAuthSuccess] = useState("");
+  const [supaUser, setSupaUser] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSupaUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSupaUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Worker account/edit
   const [editSection, setEditSection] = useState("personal");
   const [editForm, setEditForm] = useState(null);
@@ -1033,12 +1076,57 @@ export default function App() {
                 {t.idScanNotice}
               </p>
             </div>
+            {authError && (
+              <div className="rounded-xl px-3 py-2.5 text-sm font-bold" style={{ background:"#FEF2F2", color:"#991B1B" }}>
+                {authError}
+              </div>
+            )}
+            {authSuccess && (
+              <div className="rounded-xl px-3 py-2.5 text-sm font-bold" style={{ background:"#F0FDF4", color:"#166534" }}>
+                {authSuccess}
+              </div>
+            )}
             <div className="flex gap-2">
               <button onClick={()=>setWStep(2)} className="px-5 py-3 rounded-xl text-sm font-bold text-slate-600 border border-slate-200">{t.back}</button>
-              <button onClick={()=>{setWorkerProfile({...wForm});go("workerDash");}}
-                className="flex-1 py-3 rounded-xl text-white font-black text-sm"
+              <button onClick={async ()=>{
+                setAuthError(""); setAuthSuccess("");
+                if (!wForm.email.trim() || !wForm.name.trim()) { setAuthError("Please fill in your name and email."); return; }
+                if (isTempEmail(wForm.email)) { setAuthError("Temporary email addresses are not allowed. Please use a real email."); return; }
+                setAuthLoading(true);
+                const password = Math.random().toString(36).slice(-10) + "A1!";
+                const { data, error } = await supabase.auth.signUp({
+                  email: wForm.email.trim().toLowerCase(),
+                  password,
+                  options: { data: { role:"worker", name:wForm.name, ...wForm } }
+                });
+                setAuthLoading(false);
+                if (error) { setAuthError(error.message); return; }
+                if (data?.user) {
+                  await supabase.from("workers").insert([{
+                    user_id: data.user.id,
+                    name: wForm.name, email: wForm.email.trim().toLowerCase(),
+                    role: wForm.role, sector: wForm.sector, experience: wForm.experience,
+                    current_loc: wForm.currentLoc, current_city: wForm.currentCity,
+                    open_to_relocation: wForm.openToRelocation,
+                    target_countries: wForm.targetCountries,
+                    needs_housing: wForm.needsHousing,
+                    availability: wForm.availability,
+                    employment_type: wForm.employmentType,
+                    available_from: wForm.availableFrom,
+                    bio: wForm.bio, phone: wForm.phone,
+                    skills: wForm.skills,
+                    languages: wForm.languages.map(l=>l.name),
+                    is_visible: true,
+                  }]);
+                  setWorkerProfile({...wForm});
+                  setAuthSuccess("✓ Check your email to confirm your account, then you're live!");
+                  setTimeout(()=>go("workerDash"), 2000);
+                }
+              }}
+                disabled={authLoading}
+                className="flex-1 py-3 rounded-xl text-white font-black text-sm disabled:opacity-60"
                 style={{ background:C.indigo }}>
-                {t.submit}
+                {authLoading ? "Creating account..." : t.submit}
               </button>
             </div>
           </>}
@@ -1636,10 +1724,45 @@ export default function App() {
               {t.freeToBrowseDesc}
             </p>
           </div>
-          <button onClick={() => { if(cForm.compName.trim()&&cForm.email.trim()) { setCompanyProfile({...cForm}); go("companyDash"); }}}
-            className="w-full py-4 rounded-xl text-white font-black text-sm transition-colors"
+          {authError && (
+            <div className="rounded-xl px-3 py-2.5 text-sm font-bold" style={{ background:"#FEF2F2", color:"#991B1B" }}>
+              {authError}
+            </div>
+          )}
+          {authSuccess && (
+            <div className="rounded-xl px-3 py-2.5 text-sm font-bold" style={{ background:"#F0FDF4", color:"#166534" }}>
+              {authSuccess}
+            </div>
+          )}
+          <button onClick={async () => {
+            setAuthError(""); setAuthSuccess("");
+            if (!cForm.compName.trim() || !cForm.email.trim()) return;
+            if (isTempEmail(cForm.email)) { setAuthError("Temporary email addresses are not allowed. Please use a real email."); return; }
+            setAuthLoading(true);
+            const password = Math.random().toString(36).slice(-10) + "A1!";
+            const { data, error } = await supabase.auth.signUp({
+              email: cForm.email.trim().toLowerCase(),
+              password,
+              options: { data: { role:"company", compName:cForm.compName } }
+            });
+            setAuthLoading(false);
+            if (error) { setAuthError(error.message); return; }
+            if (data?.user) {
+              await supabase.from("companies").insert([{
+                user_id: data.user.id,
+                comp_name: cForm.compName, email: cForm.email.trim().toLowerCase(),
+                kvk: cForm.kvk, phone: cForm.phone, address: cForm.address,
+                dest_country: cForm.destCountry, industry: cForm.industry,
+              }]);
+              setCompanyProfile({...cForm});
+              setAuthSuccess("✓ Check your email to confirm your account!");
+              setTimeout(()=>go("companyDash"), 2000);
+            }
+          }}
+            disabled={authLoading}
+            className="w-full py-4 rounded-xl text-white font-black text-sm transition-colors disabled:opacity-60"
             style={{ background:cForm.compName.trim()&&cForm.email.trim()?C.navy:"#CBD5E1" }}>
-            {t.createFreeAccount}
+            {authLoading ? "Creating account..." : t.createFreeAccount}
           </button>
           <p className="text-center text-xs text-slate-400">{t.noCardRequired}</p>
         </div>
