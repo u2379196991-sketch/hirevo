@@ -975,6 +975,38 @@ export default function App() {
   });
 
   const wi = workerProfile ? workerProfile.name.split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2) : "??";
+  // ── DYNAMIC SEO META ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const titles = {
+      landing: "Hirevo — Direct EU Talent | No Agency Fees | NL & DE",
+      login: "Sign In — Hirevo",
+      workerReg: "Create Worker Profile (Free) — Hirevo",
+      companyReg: "Create Company Account (Free) — Hirevo",
+      workerDash: "My Dashboard — Hirevo Worker",
+      companyDash: "Company Dashboard — Hirevo",
+      companyBrowse: "Browse Workers — Hirevo",
+      workerAccount: "My Account — Hirevo",
+      companyAccount: "Company Account — Hirevo",
+      privacy: "Privacy Policy — Hirevo",
+      terms: "Terms of Service — Hirevo",
+    };
+    const descs = {
+      landing: "Hirevo connects verified EU workers directly with companies in the Netherlands and Germany. No agency fees. Free profiles for workers.",
+      workerReg: "Create your free worker profile on Hirevo. Get discovered by companies in the Netherlands and Germany without any agency fees.",
+      companyReg: "Create a free company account on Hirevo. Browse verified EU workers and hire directly — no agency fees.",
+      companyBrowse: "Browse verified EU worker profiles for your company in the Netherlands or Germany. Filter by sector, location and availability.",
+      privacy: "Read Hirevo's Privacy Policy. Learn how we collect, use and protect your personal data in compliance with GDPR.",
+      terms: "Read Hirevo's Terms of Service. Understand your rights and responsibilities when using the Hirevo platform.",
+    };
+    document.title = titles[screen] || titles.landing;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc && descs[screen]) metaDesc.setAttribute("content", descs[screen]);
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute("content", titles[screen] || titles.landing);
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc && descs[screen]) ogDesc.setAttribute("content", descs[screen]);
+  }, [screen]);
+
   const SCREEN_MAP = {
     "": "landing", "landing": "landing",
     "privacy": "privacy", "terms": "terms",
