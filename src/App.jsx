@@ -584,32 +584,31 @@ export default function App() {
   useEffect(() => {
     const loadProfile = async (user) => {
       if (!user) return;
-      const role = user.user_metadata?.role;
-      if (role === "worker") {
-        const { data } = await supabase.from("workers").select("*").eq("user_id", user.id).single();
-        if (data) {
-          setWorkerProfile({
-            name: data.name, email: data.email, role: data.role, sector: data.sector,
-            experience: data.experience, currentLoc: data.current_loc, currentCity: data.current_city,
-            openToRelocation: data.open_to_relocation, targetCountries: data.target_countries || [],
-            needsHousing: data.needs_housing, availability: data.availability,
-            employmentType: data.employment_type, availableFrom: data.available_from,
-            bio: data.bio, phone: data.phone, skills: data.skills || [],
-            languages: (data.languages||[]).map(l=>({name:l})),
-          });
-          setProfileVisible(data.is_visible ?? true);
-          go("workerDash");
-        }
-      } else if (role === "company") {
-        const { data } = await supabase.from("companies").select("*").eq("user_id", user.id).single();
-        if (data) {
-          setCompanyProfile({
-            compName: data.comp_name, email: data.email, kvk: data.kvk,
-            phone: data.phone, address: data.address,
-            destCountry: data.dest_country, industry: data.industry,
-          });
-          go("companyDash");
-        }
+      // Check workers table first
+      const { data: workerData } = await supabase.from("workers").select("*").eq("user_id", user.id).single();
+      if (workerData) {
+        setWorkerProfile({
+          name: workerData.name, email: workerData.email, role: workerData.role, sector: workerData.sector,
+          experience: workerData.experience, currentLoc: workerData.current_loc, currentCity: workerData.current_city,
+          openToRelocation: workerData.open_to_relocation, targetCountries: workerData.target_countries || [],
+          needsHousing: workerData.needs_housing, availability: workerData.availability,
+          employmentType: workerData.employment_type, availableFrom: workerData.available_from,
+          bio: workerData.bio, phone: workerData.phone, skills: workerData.skills || [],
+          languages: (workerData.languages||[]).map(l=>({name:l})),
+        });
+        setProfileVisible(workerData.is_visible ?? true);
+        go("workerDash");
+        return;
+      }
+      // Check companies table
+      const { data: companyData } = await supabase.from("companies").select("*").eq("user_id", user.id).single();
+      if (companyData) {
+        setCompanyProfile({
+          compName: companyData.comp_name, email: companyData.email, kvk: companyData.kvk,
+          phone: companyData.phone, address: companyData.address,
+          destCountry: companyData.dest_country, industry: companyData.industry,
+        });
+        go("companyDash");
       }
     };
 
