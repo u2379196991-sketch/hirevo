@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0F172A"/>
+  <rect x="0" y="0" width="1200" height="4" fill="#4F46E5"/>
+  <text x="80" y="200" font-family="system-ui,sans-serif" font-size="80" font-weight="900" fill="white">Hirevo.</text>
+  <text x="80" y="290" font-family="system-ui,sans-serif" font-size="32" fill="#818CF8">Direct EU Talent Marketplace</text>
+  <text x="80" y="380" font-family="system-ui,sans-serif" font-size="26" fill="#64748B">Hire workers in NL &amp; DE — no agency fees</text>
+  <text x="80" y="440" font-family="system-ui,sans-serif" font-size="22" fill="#64748B">Logistics · Manufacturing · Hospitality · Agriculture</text>
+  <rect x="80" y="520" width="220" height="56" rx="12" fill="#4F46E5"/>
+  <text x="190" y="554" font-family="system-ui,sans-serif" font-size="20" font-weight="700" text-anchor="middle" fill="white">hirevo.nl</text>
+</svg>
