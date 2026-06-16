@@ -597,6 +597,12 @@ export default function App() {
           languages: (workerData.languages||[]).map(l=>({name:l})),
         });
         setProfileVisible(workerData.is_visible ?? true);
+        // Load avatar
+        const { data: avatarData } = supabase.storage.from("avatars").getPublicUrl(`worker/${user.id}.jpg`);
+        const { data: avatarPng } = supabase.storage.from("avatars").getPublicUrl(`worker/${user.id}.png`);
+        // Try to fetch to see which exists
+        fetch(avatarData.publicUrl).then(r => { if(r.ok) setWorkerAvatar(avatarData.publicUrl); })
+          .catch(()=>fetch(avatarPng.publicUrl).then(r=>{ if(r.ok) setWorkerAvatar(avatarPng.publicUrl); }).catch(()=>{}));
         go("workerDash");
         // Load stats
         const { count: viewCount } = await supabase.from("profile_views")
@@ -625,25 +631,30 @@ export default function App() {
         // Load real workers from Supabase
         const { data: dbWorkers } = await supabase.from("workers").select("*").eq("is_visible", true);
         if (dbWorkers && dbWorkers.length > 0) {
-          const mapped = dbWorkers.map((w, i) => ({
-            id: `db-${w.id}`, name: w.name, initials: w.name.split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2),
-            accent: ["#16A34A","#7C3AED","#DC2626","#2563EB","#0891B2","#EA580C"][i % 6],
-            role: w.role || "—", sector: w.sector || "Logistics", exp: w.experience || "—",
-            rating: 4.8, placed: 0, avail: "green",
-            currentLoc: w.current_loc || "RO", currentCity: w.current_city || "—",
-            openToRelocation: w.open_to_relocation || false,
-            targetCountries: w.target_countries || [],
-            isIdVerified: false, hasBsn: false,
-            needsHousing: w.needs_housing || false,
-            langs: w.languages || [],
-            skills: w.skills || [],
-            bio: w.bio || "",
-            phone: w.phone || "", email: w.email || "",
-            lastActive: "Recently", hasVideo: false, responseRate: "—",
-            employmentType: w.employment_type || "permanent",
-            availableFrom: w.available_from || "Immediate",
-            reviews: [],
-          }));
+          const mapped = dbWorkers.map((w, i) => {
+            const { data: avJpg } = supabase.storage.from("avatars").getPublicUrl(`worker/${w.user_id}.jpg`);
+            const { data: avPng } = supabase.storage.from("avatars").getPublicUrl(`worker/${w.user_id}.png`);
+            return {
+              id: `db-${w.id}`, name: w.name, initials: w.name.split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2),
+              accent: ["#16A34A","#7C3AED","#DC2626","#2563EB","#0891B2","#EA580C"][i % 6],
+              avatarUrl: avJpg.publicUrl,
+              role: w.role || "—", sector: w.sector || "Logistics", exp: w.experience || "—",
+              rating: 4.8, placed: 0, avail: "green",
+              currentLoc: w.current_loc || "RO", currentCity: w.current_city || "—",
+              openToRelocation: w.open_to_relocation || false,
+              targetCountries: w.target_countries || [],
+              isIdVerified: false, hasBsn: false,
+              needsHousing: w.needs_housing || false,
+              langs: w.languages || [],
+              skills: w.skills || [],
+              bio: w.bio || "",
+              phone: w.phone || "", email: w.email || "",
+              lastActive: "Recently", hasVideo: false, responseRate: "—",
+              employmentType: w.employment_type || "permanent",
+              availableFrom: w.available_from || "Immediate",
+              reviews: [],
+            };
+          });
           setRealWorkers(mapped);
         }
         go("companyDash");
@@ -710,6 +721,11 @@ export default function App() {
 
   // Worker stats
   const [workerStats, setWorkerStats] = useState({ views: 0, searches: 0 });
+
+  // Avatars
+  const [workerAvatar, setWorkerAvatar] = useState(null);
+  const [companyAvatar, setCompanyAvatar] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Company stats
   const [companyStats, setCompanyStats] = useState({ profilesViewed: 0, searches: 0, unlocks: 0 });
@@ -838,6 +854,20 @@ export default function App() {
         [wid]: [...(prev[wid]||[]), { from:"worker", text:"Thanks for reaching out — I'll get back to you shortly.", time:replyTime }]
       }));
     }, 1400);
+  };
+
+  const uploadAvatar = async (file, type) => {
+    if (!supaUser || !file) return;
+    setAvatarUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${type}/${supaUser.id}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (!error) {
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      if (type === "worker") setWorkerAvatar(data.publicUrl + "?t=" + Date.now());
+      else setCompanyAvatar(data.publicUrl + "?t=" + Date.now());
+    }
+    setAvatarUploading(false);
   };
 
   const submitMyReview = () => {
@@ -1361,14 +1391,17 @@ export default function App() {
                 {workerProfile.role || "—"} — <CountryBadge code={workerProfile.currentLoc} /> {workerProfile.currentCity}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-base relative flex-shrink-0"
+            <label className="w-14 h-14 rounded-xl flex items-center justify-center font-black text-base relative flex-shrink-0 cursor-pointer overflow-hidden"
               style={{ background:C.indigo }}>
-              {wi}
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2"
-                style={{ background:"#64748B", borderColor:C.navy }}>
-                <Shield className="w-2.5 h-2.5 text-white" />
+              {workerAvatar
+                ? <img src={workerAvatar} alt="avatar" className="w-full h-full object-cover" />
+                : <span className="text-white">{wi}</span>}
+              <input type="file" accept="image/*" className="hidden" onChange={e=>e.target.files[0]&&uploadAvatar(e.target.files[0],"worker")} />
+              <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="w-4 h-4 text-white" />
               </div>
-            </div>
+              {avatarUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><RefreshCw className="w-4 h-4 text-white animate-spin"/></div>}
+            </label>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
@@ -1405,8 +1438,10 @@ export default function App() {
           </div>
           <div className="border-2 border-slate-100 rounded-xl p-4" style={{ borderLeft:`4px solid ${C.indigo}` }}>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs text-white flex-shrink-0"
-                style={{ background:C.indigo }}>{wi}</div>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs text-white flex-shrink-0 overflow-hidden"
+                style={{ background:C.indigo }}>
+                {workerAvatar ? <img src={workerAvatar} alt="" className="w-full h-full object-cover" /> : wi}
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="font-black text-slate-900 text-sm truncate">{workerProfile.name}</div>
                 <div className="text-xs text-slate-500">{workerProfile.role || "—"} · {workerProfile.experience || "0"} yrs</div>
@@ -2168,9 +2203,11 @@ export default function App() {
                   }}
                     className="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-5 cursor-pointer transition-all group shadow-sm">
                     <div className="flex gap-3">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0 relative"
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0 relative overflow-hidden"
                         style={{ background:w.accent }}>
-                        {w.initials}
+                        {w.avatarUrl
+                          ? <img src={w.avatarUrl} alt="" className="w-full h-full object-cover" />
+                          : w.initials}
                         {w.isIdVerified && (
                           <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-white">
                             <Shield className="w-2 h-2 text-white" />
@@ -2267,9 +2304,11 @@ export default function App() {
             {/* Modal header */}
             <div className="px-5 pt-4 pb-4 border-b border-slate-100">
               <div className="flex items-start gap-4 pr-8">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-lg flex-shrink-0 relative"
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-lg flex-shrink-0 relative overflow-hidden"
                   style={{ background:selectedWorker.accent }}>
-                  {selectedWorker.initials}
+                  {selectedWorker.avatarUrl
+                    ? <img src={selectedWorker.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    : selectedWorker.initials}
                   {selectedWorker.isIdVerified && (
                     <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-white">
                       <Shield className="w-3 h-3 text-white" />
@@ -2406,175 +2445,15 @@ export default function App() {
                 </div>
               )}
             </div>
-
-            {/* Modal CTA — Credits / Subscribe system */}
+            {/* Modal CTA — Coming Soon */}
             <div className="px-5 pb-8 pt-2">
-              {contactSent ? (
-                <div className="rounded-2xl p-5" style={{ background:"#F0FDF4" }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <CheckCircle className="w-7 h-7 text-emerald-500 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-black text-emerald-800">{t.contactUnlocked}</h4>
-                      {creditSpend && (
-                        <p className="text-xs font-bold mt-0.5" style={{ color:"#059669" }}>
-                          5 credits used · {creditSpend.before} → <span className="text-lg font-black">{creditSpend.after}</span> remaining
-                        </p>
-                      )}
-                      {companyPlan && (
-                        <p className="text-xs font-semibold text-emerald-600 mt-0.5">
-                          Included in {companyPlan} plan
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm bg-white rounded-xl p-3 border border-emerald-200 text-left font-mono mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400 text-xs w-12">{t.phoneShort}</span>
-                      <span className="text-indigo-600 font-bold">{selectedWorker.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400 text-xs w-12">{t.emailShort}</span>
-                      <span className="text-indigo-600 font-bold">{selectedWorker.email}</span>
-                    </div>
-                  </div>
-
-                  {/* In-platform messaging */}
-                  <div className="bg-white rounded-xl border border-emerald-200 mb-3 overflow-hidden">
-                    <div className="px-3 py-2 border-b border-slate-100">
-                      <p className="text-xs font-black text-slate-500 uppercase tracking-wider">{t.msgTitle} — {selectedWorker.name.split(" ")[0]}</p>
-                    </div>
-                    {(messagesByWorker[selectedWorker.id]||[]).length > 0 && (
-                      <div className="px-3 py-2 space-y-2 max-h-40 overflow-y-auto">
-                        {(messagesByWorker[selectedWorker.id]||[]).map((m,i) => (
-                          <div key={i} className={`flex ${m.from==="company"?"justify-end":"justify-start"}`}>
-                            <div className="max-w-[75%] rounded-xl px-3 py-1.5 text-xs"
-                              style={{ background:m.from==="company"?C.indigo:"#F1F5F9", color:m.from==="company"?"white":"#374151" }}>
-                              {m.text}
-                              <div className="text-[10px] opacity-60 mt-0.5">{m.time}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 p-2 border-t border-slate-100">
-                      <input className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-indigo-400"
-                        placeholder={t.msgPlaceholder} value={msgInput}
-                        onChange={e=>setMsgInput(e.target.value)}
-                        onKeyDown={e=>e.key==="Enter"&&sendMessage()} />
-                      <button onClick={sendMessage}
-                        className="px-3 py-1.5 rounded-lg text-xs font-black text-white" style={{ background:C.indigo }}>
-                        {t.msgSend}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button onClick={()=>{setContactSent(false);setSelectedWorker(null);setCreditSpend(null);}}
-                    className="w-full py-2.5 rounded-xl text-sm font-bold border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 transition-colors">
-                    {t.closeBtn}
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* Live credits balance */}
-                  <div className="flex items-center justify-between px-1">
-                    <p className="text-xs font-black text-slate-500 uppercase tracking-wider">{t.chooseAccess}</p>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black"
-                      style={{background:"#EEF2FF",color:C.indigo}}>
-                      <span className="text-base font-black">{credits}</span> credits
-                    </div>
-                  </div>
-
-                  {/* Bundle bought flash */}
-                  {bundleFlash && (
-                    <div className="rounded-xl px-3 py-2.5 flex items-center gap-2 text-sm font-bold"
-                      style={{background:"#F0FDF4",color:"#166534",border:"1px solid #BBF7D0"}}>
-                      <CheckCircle className="w-4 h-4 flex-shrink-0"/>
-                      {t.creditsAdded} +30 credits added — balance: {credits}
-                    </div>
-                  )}
-
-                  {/* Use credits */}
-                  {companyPlan || credits>=5 ? (
-                    <button onClick={doUnlock}
-                      className="w-full py-3.5 rounded-2xl text-white font-black text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                      style={{background:C.indigo}}>
-                      <Unlock className="w-4 h-4"/>
-                      {companyPlan ? t.unlockContact : `${t.useCreditsBtn} (${credits} remaining)`}
-                    </button>
-                  ) : (
-                    <div className="w-full py-3 rounded-2xl text-center text-sm font-semibold text-slate-400 border-2 border-dashed border-slate-200">
-                      <Lock className="w-4 h-4 inline mr-1.5 opacity-50"/>
-                      {t.notEnoughCredits} — {credits}/5 credits
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 my-1">
-                    <div className="flex-1 h-px bg-slate-200"/>
-                    <span className="text-xs font-bold text-slate-400 uppercase">{t.orDivider}</span>
-                    <div className="flex-1 h-px bg-slate-200"/>
-                  </div>
-
-                  {/* Buy credits */}
-                  <button onClick={buyBundle}
-                    className="w-full rounded-2xl p-4 text-left flex items-center justify-between border-2 hover:border-slate-300 transition-colors bg-white"
-                    style={{borderColor:bundleFlash?"#86EFAC":"#E2E8F0"}}>
-                    <div>
-                      <p className="font-black text-sm text-slate-900">{t.bundleTitle}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{t.bundleDesc}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <p className="font-black text-lg" style={{color:C.navy}}>{t.bundlePrice}</p>
-                      <p className="text-[10px] text-slate-400">→ 6 unlocks</p>
-                    </div>
-                  </button>
-
-                  {/* Bulk pack */}
-                  <button onClick={buyBulk}
-                    className="w-full rounded-2xl p-4 text-left flex items-center justify-between border-2 hover:border-slate-300 transition-colors bg-white"
-                    style={{borderColor:bulkFlash?"#86EFAC":"#E2E8F0"}}>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-black text-sm text-slate-900">{t.bulkTitle}</p>
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{background:"#FEF3C7",color:"#92400E"}}>{t.bulkSave}</span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">{t.bulkDesc}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <p className="font-black text-lg" style={{color:C.navy}}>{t.bulkPrice}</p>
-                      <p className="text-[10px] text-slate-400">→ 20 unlocks</p>
-                    </div>
-                  </button>
-                  {bulkFlash && (
-                    <div className="rounded-xl px-3 py-2.5 flex items-center gap-2 text-sm font-bold"
-                      style={{background:"#F0FDF4",color:"#166534",border:"1px solid #BBF7D0"}}>
-                      <CheckCircle className="w-4 h-4 flex-shrink-0"/>
-                      {t.creditsAdded} +100 credits added — balance: {credits}
-                    </div>
-                  )}
-
-                  {/* Subscribe */}
-                  {[
-                    {key:"monthly",label:t.monthlyPlan,price:t.monthlyPrice,desc:t.monthlyDesc,hi:false},
-                    {key:"annual", label:t.annualPlan, price:t.annualPrice, desc:t.annualDesc, hi:true},
-                  ].map(p=>(
-                    <button key={p.key}
-                      onClick={()=>{setCompanyPlan(p.key);setContactSent(true);}}
-                      className="w-full rounded-2xl p-4 text-left flex items-center justify-between transition-all"
-                      style={{border:p.hi?`2px solid ${C.indigo}`:"2px solid #E2E8F0",background:p.hi?"#EEF2FF":"white"}}>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-black text-sm text-slate-900">{p.label}</p>
-                          {p.hi&&<span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{background:C.indigo}}>{t.bestValue}</span>}
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5">{p.desc}</p>
-                      </div>
-                      <p className="font-black text-sm flex-shrink-0 ml-4" style={{color:C.navy}}>{p.price}</p>
-                    </button>
-                  ))}
-
-                  <p className="text-center text-xs text-slate-400">{t.cancel}</p>
-                </div>
-              )}
+              <div className="rounded-2xl p-5 text-center" style={{ background:"#F8FAFC", border:"2px dashed #E2E8F0" }}>
+                <Lock className="w-8 h-8 mx-auto mb-3 text-slate-300" />
+                <p className="font-black text-slate-700 text-sm mb-1">Contact Details — Coming Soon</p>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Direct contact unlocks, credits and subscriptions are launching soon. We'll notify you when payments go live.
+                </p>
+              </div>
               <div className="mt-4 flex justify-center border-t border-slate-100 pt-4">
                 <button className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-400 transition-colors">
                   <Flag className="w-3.5 h-3.5"/>{t.reportProfile}
@@ -2603,10 +2482,17 @@ export default function App() {
         {/* Header */}
         <div className="px-4 py-5" style={{ background:C.navy }}>
           <div className="max-w-lg mx-auto flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white text-xl flex-shrink-0"
+            <label className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white text-xl flex-shrink-0 cursor-pointer overflow-hidden relative"
               style={{ background:C.indigo }}>
-              {companyProfile.compName.charAt(0).toUpperCase()}
-            </div>
+              {companyAvatar
+                ? <img src={companyAvatar} alt="avatar" className="w-full h-full object-cover" />
+                : companyProfile.compName.charAt(0).toUpperCase()}
+              <input type="file" accept="image/*" className="hidden" onChange={e=>e.target.files[0]&&uploadAvatar(e.target.files[0],"company")} />
+              <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="w-4 h-4 text-white" />
+              </div>
+              {avatarUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><RefreshCw className="w-4 h-4 text-white animate-spin"/></div>}
+            </label>
             <div className="flex-1 min-w-0">
               <h2 className="font-black text-white text-lg truncate">{companyProfile.compName}</h2>
               <p className="text-slate-400 text-sm">{companyProfile.destCountry} · {companyProfile.industry}</p>
