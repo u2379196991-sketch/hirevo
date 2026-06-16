@@ -51,8 +51,8 @@ const T = {
     landingSub:"A private database of verified workers — local or relocating — for companies in the Netherlands and Germany. No applications. No agency fees.",
     forComp:"For Companies", forWork:"For Workers",
     companyBtn:"Access as Company", workerBtn:"Create Worker Profile",
-    compFeatures:["Private database — not a job board","ID Verified + BSN + housing compliance filters","Flat monthly fee. No per-hire charges."],
-    workerFeatures:["Free profile, always","Companies contact you directly","Biometric ID badge gives 3x more visibility","Real-time dashboard"],
+    compFeatures:["Private database — not a job board","BSN + housing compliance filters","Flat monthly fee. No per-hire charges."],
+    workerFeatures:["Free profile, always","Companies contact you directly","Real-time dashboard"],
     search:"Search role, skill, name...", searchBtn:"Search",
     found:"profiles found", now:"Available now", soon:"Available soon", later:"4+ weeks",
     about:"About", skills:"Skills", langs:"Languages",
@@ -176,8 +176,8 @@ const T = {
     landingSub:"Baza de date privată de muncitori verificați — locali sau în relocare — pentru companii din Olanda și Germania. Fără aplicații. Fără taxe de agenție.",
     forComp:"Pentru Companii", forWork:"Pentru Muncitori",
     companyBtn:"Accesează ca Companie", workerBtn:"Creează Profil de Muncitor",
-    compFeatures:["Bază de date privată — nu un job board","Filtre ID Verificat + BSN + cazare","Taxă lunară fixă. Fără comisioane per angajare."],
-    workerFeatures:["Profil gratuit, mereu","Companiile te contactează direct","Badge-ul ID Verified crește vizibilitatea de 3x","Dashboard în timp real"],
+    compFeatures:["Bază de date privată — nu un job board","Filtre BSN + cazare","Taxă lunară fixă. Fără comisioane per angajare."],
+    workerFeatures:["Profil gratuit, mereu","Companiile te contactează direct","Dashboard în timp real"],
     search:"Caută rol, abilitate, nume...", searchBtn:"Caută",
     found:"profiluri găsite", now:"Disponibil acum", soon:"Disponibil curând", later:"4+ săptămâni",
     about:"Despre", skills:"Abilități", langs:"Limbi",
@@ -301,8 +301,8 @@ const T = {
     landingSub:"Een privédatabase van geverifieerde werknemers — lokaal of in relocatie — voor bedrijven in Nederland en Duitsland. Geen sollicitaties. Geen bureaukosten.",
     forComp:"Voor Bedrijven", forWork:"Voor Werknemers",
     companyBtn:"Toegang als Bedrijf", workerBtn:"Maak Werknemersprofiel",
-    compFeatures:["Privédatabase — geen vacaturebank","ID-gecontroleerd + BSN + huisvestingsfilters","Vast maandtarief. Geen kosten per aanwerving."],
-    workerFeatures:["Altijd gratis profiel","Bedrijven nemen direct contact op","ID-badge geeft 3x meer zichtbaarheid","Realtime dashboard"],
+    compFeatures:["Privédatabase — geen vacaturebank","BSN + huisvestingsfilters","Vast maandtarief. Geen kosten per aanwerving."],
+    workerFeatures:["Altijd gratis profiel","Bedrijven nemen direct contact op","Realtime dashboard"],
     search:"Zoek functie, vaardigheid, naam...", searchBtn:"Zoeken",
     found:"profielen gevonden", now:"Nu beschikbaar", soon:"Binnenkort beschikbaar", later:"4+ weken",
     about:"Over", skills:"Vaardigheden", langs:"Talen",
@@ -598,6 +598,14 @@ export default function App() {
         });
         setProfileVisible(workerData.is_visible ?? true);
         go("workerDash");
+        // Load stats
+        const { count: viewCount } = await supabase.from("profile_views")
+          .select("*", { count:"exact", head:true })
+          .eq("worker_email", workerData.email);
+        const { count: searchCount } = await supabase.from("profile_searches")
+          .select("*", { count:"exact", head:true })
+          .eq("worker_email", workerData.email);
+        setWorkerStats({ views: viewCount || 0, searches: searchCount || 0 });
         return;
       }
       // Check companies table
@@ -669,6 +677,9 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginResetSent, setLoginResetSent] = useState(false);
+
+  // Worker stats
+  const [workerStats, setWorkerStats] = useState({ views: 0, searches: 0 });
 
   // Registration passwords
   const [regPassword, setRegPassword] = useState("");
@@ -834,6 +845,34 @@ export default function App() {
       })
       .catch(() => {}); // Silent fail — keep default EN
   }, []);
+
+  // ── TRACK SEARCH APPEARANCES ──────────────────────────────────────────────
+  useEffect(() => {
+    if (screen !== "companyBrowse" || !supaUser) return;
+    const timer = setTimeout(async () => {
+      // Get currently visible workers after debounce
+      const visible = WORKERS.filter(w => {
+        if (search.trim()) {
+          const q = search.toLowerCase();
+          if (!w.name.toLowerCase().includes(q) && !w.role.toLowerCase().includes(q) &&
+              !w.sector.toLowerCase().includes(q) && !w.skills.some(s=>s.toLowerCase().includes(q))) return false;
+        }
+        if (sector !== "All" && w.sector !== sector) return false;
+        if (workerTypeTab === "local" && w.openToRelocation) return false;
+        if (workerTypeTab === "relocate" && !w.openToRelocation) return false;
+        if (filterVerified && !w.isIdVerified) return false;
+        if (filterNoHousing && w.needsHousing) return false;
+        if (filterEmployment !== "all" && w.employmentType !== filterEmployment) return false;
+        return true;
+      });
+      if (visible.length > 0) {
+        await supabase.from("profile_searches").insert(
+          visible.map(w => ({ worker_email: w.email, company_user_id: supaUser.id }))
+        );
+      }
+    }, 1500); // debounce 1.5s
+    return () => clearTimeout(timer);
+  }, [screen, search, sector, workerTypeTab, filterVerified, filterNoHousing, filterEmployment, supaUser]);
 
   const destCC = companyProfile?.destCountry || "NL";
   const filtered = WORKERS.filter(w => {
@@ -1208,12 +1247,6 @@ export default function App() {
                 type="password" value={regPasswordConfirm} onChange={e=>setRegPasswordConfirm(e.target.value)}
                 placeholder="••••••••" />
             </Field>
-            <div className="rounded-xl p-3 flex items-start gap-2" style={{ background:"#EEF2FF" }}>
-              <Shield className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color:C.indigo }} />
-              <p className="text-xs font-semibold" style={{ color:C.indigo }}>
-                {t.idScanNotice}
-              </p>
-            </div>
             {authError && (
               <div className="rounded-xl px-3 py-2.5 text-sm font-bold" style={{ background:"#FEF2F2", color:"#991B1B" }}>
                 {authError}
@@ -1306,39 +1339,21 @@ export default function App() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
               {t.active}
             </span>
-            <span className="text-xs px-2.5 py-1.5 rounded-full font-semibold"
-              style={{ background:"rgba(245,158,11,0.15)", color:"#FCD34D" }}>
-              {t.idVerificationPending}
-            </span>
           </div>
         </div>
 
-        {/* Visibility bump */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <h3 className="font-bold text-sm text-slate-800">{t.profileVisibility}</h3>
-            <p className="text-xs text-slate-400 mt-0.5 truncate">{bumpStatus || t.lastUpdatedJustNow}</p>
+        {/* Profile preview */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl p-4 text-center" style={{ background:"#EEF2FF" }}>
+            <Eye className="w-4 h-4 mx-auto mb-1" style={{ color:C.indigo }} />
+            <div className="font-black text-xl" style={{ color:C.indigo }}>{workerStats.views}</div>
+            <div className="text-xs font-semibold text-slate-500 mt-0.5">{t.profileViews}</div>
           </div>
-          <button onClick={()=>setBumpStatus(t.refreshedAt+new Date().toLocaleTimeString())}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity flex-shrink-0"
-            style={{ background:C.indigo }}>
-            <RefreshCw className="w-3.5 h-3.5" />{t.bumpProfile}
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { icon:Eye, n:"24", label:t.profileViews, bg:"#EEF2FF", acc:C.indigo },
-            { icon:TrendingUp, n:"18", label:t.searchApp, bg:"#ECFDF5", acc:"#059669" },
-            { icon:Shield, n:"—", label:"ID Badge", bg:"#FFFBEB", acc:"#D97706" },
-          ].map((s,i) => (
-            <div key={i} className="rounded-2xl p-3 text-center" style={{ background:s.bg }}>
-              <s.icon className="w-4 h-4 mx-auto mb-1" style={{ color:s.acc }} />
-              <div className="font-black text-base" style={{ color:s.acc }}>{s.n}</div>
-              <div className="text-xs font-semibold text-slate-500 mt-0.5">{s.label}</div>
-            </div>
-          ))}
+          <div className="rounded-2xl p-4 text-center" style={{ background:"#ECFDF5" }}>
+            <TrendingUp className="w-4 h-4 mx-auto mb-1" style={{ color:"#059669" }} />
+            <div className="font-black text-xl" style={{ color:"#059669" }}>{workerStats.searches}</div>
+            <div className="text-xs font-semibold text-slate-500 mt-0.5">{t.searchApp}</div>
+          </div>
         </div>
 
         {/* Profile preview */}
@@ -1386,36 +1401,6 @@ export default function App() {
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Video intro */}
-        <div className="rounded-2xl p-5 border-2 border-dashed" style={{ borderColor:"rgba(79,70,229,0.25)" }}>
-          <div className="flex items-start gap-3">
-            <Video className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color:C.indigo }} />
-            <div>
-              <p className="font-bold text-sm" style={{ color:C.navy }}>Add a {t.videoPitch}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{t.videoPitchDesc}</p>
-            </div>
-          </div>
-          <button className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold transition-colors"
-            style={{ background:"#EEF2FF", color:C.indigo }}>
-            {t.uploadVideo}
-          </button>
-        </div>
-
-        {/* ID Verification */}
-        <div className="rounded-2xl p-5 border-2" style={{ background:"rgba(79,70,229,0.03)", borderColor:C.indigo }}>
-          <div className="flex items-start gap-3">
-            <Shield className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color:C.indigo }} />
-            <div>
-              <p className="font-bold text-sm" style={{ color:C.navy }}>{t.completeIdVerifTitle}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{t.completeIdVerifDesc}</p>
-            </div>
-          </div>
-          <button className="w-full mt-3 py-3 rounded-xl font-black text-sm text-white"
-            style={{ background:C.indigo }}>
-            <Camera className="w-4 h-4 inline mr-2" />{t.startVerif}
-          </button>
         </div>
 
         {/* Rate a company you've worked with */}
@@ -1739,23 +1724,6 @@ export default function App() {
           {/* ─ ACCOUNT & SECURITY ─ */}
           {editSection === "account" && (
             <div className="space-y-4">
-
-              {/* ID Verification */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                <h3 className="font-black text-sm mb-3" style={{ color:C.navy }}>{t.idVerifStatus}</h3>
-                <div className="flex items-center justify-between p-3 rounded-xl"
-                  style={{ background:"#FEF3C7", border:"1px solid #FDE68A" }}>
-                  <div>
-                    <p className="text-xs font-bold text-amber-800">{t.idPending}</p>
-                    <p className="text-xs text-amber-600 mt-0.5">{t.idVerifPendingDesc}</p>
-                  </div>
-                  <Shield className="w-5 h-5 text-amber-600 flex-shrink-0"/>
-                </div>
-                <button className="w-full mt-3 py-3 rounded-xl font-black text-sm text-white flex items-center justify-center gap-2"
-                  style={{ background:C.indigo }}>
-                  <Camera className="w-4 h-4"/>{t.startVerif}
-                </button>
-              </div>
 
               {/* Profile Visibility */}
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
@@ -2147,7 +2115,20 @@ export default function App() {
                 const a = AVAIL_CFG[w.avail] || AVAIL_CFG.gray;
                 const availLabel = w.avail==="green"?t.now:w.avail==="amber"?t.soon:t.later;
                 return (
-                  <div key={w.id} onClick={()=>{setSelectedWorker(w); setContactSent(unlockedIds.has(w.id)); setCreditSpend(null); setShowHousingForm(false); setHousingSubmitted(false);}}
+                  <div key={w.id} onClick={async ()=>{
+                    setSelectedWorker(w);
+                    setContactSent(unlockedIds.has(w.id));
+                    setCreditSpend(null);
+                    setShowHousingForm(false);
+                    setHousingSubmitted(false);
+                    // Track profile view
+                    if (supaUser) {
+                      await supabase.from("profile_views").insert([{
+                        worker_email: w.email,
+                        company_user_id: supaUser.id,
+                      }]);
+                    }
+                  }}
                     className="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-5 cursor-pointer transition-all group shadow-sm">
                     <div className="flex gap-3">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0 relative"
@@ -2168,12 +2149,6 @@ export default function App() {
                                 <Unlock className="w-2.5 h-2.5"/>Unlocked
                               </span>
                             )}
-                          {w.hasVideo && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                              style={{ background:"#EEF2FF", color:C.indigo }}>
-                              <Video className="w-2.5 h-2.5" />Video
-                            </span>
-                          )}
                           {w.isIdVerified ? <VerifiedBadge t={t} /> : <UnverifiedBadge t={t} />}
                           {w.hasBsn && (
                             <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
@@ -2276,18 +2251,6 @@ export default function App() {
                   </div>
                 </div>
               </div>
-
-              {selectedWorker.hasVideo && (
-                <div className="mt-4 aspect-video rounded-xl flex flex-col items-center justify-center text-white cursor-pointer group overflow-hidden relative"
-                  style={{ background:C.navy }}>
-                  <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80&auto=format" alt=""
-                    className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity" />
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center border border-white/30 mb-2 z-10 group-hover:scale-105 transition-transform">
-                    <Video className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="font-black text-sm z-10">Play {t.videoPitch} (0:30)</span>
-                </div>
-              )}
             </div>
 
             {/* Modal body */}
