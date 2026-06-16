@@ -616,6 +616,36 @@ export default function App() {
           phone: companyData.phone, address: companyData.address,
           destCountry: companyData.dest_country, industry: companyData.industry,
         });
+        // Load company stats
+        const { count: viewsCount } = await supabase.from("profile_views")
+          .select("*", { count:"exact", head:true }).eq("company_user_id", user.id);
+        const { count: searchesCount } = await supabase.from("profile_searches")
+          .select("*", { count:"exact", head:true }).eq("company_user_id", user.id);
+        setCompanyStats({ profilesViewed: viewsCount || 0, searches: searchesCount || 0, unlocks: 0 });
+        // Load real workers from Supabase
+        const { data: dbWorkers } = await supabase.from("workers").select("*").eq("is_visible", true);
+        if (dbWorkers && dbWorkers.length > 0) {
+          const mapped = dbWorkers.map((w, i) => ({
+            id: `db-${w.id}`, name: w.name, initials: w.name.split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2),
+            accent: ["#16A34A","#7C3AED","#DC2626","#2563EB","#0891B2","#EA580C"][i % 6],
+            role: w.role || "—", sector: w.sector || "Logistics", exp: w.experience || "—",
+            rating: 4.8, placed: 0, avail: "green",
+            currentLoc: w.current_loc || "RO", currentCity: w.current_city || "—",
+            openToRelocation: w.open_to_relocation || false,
+            targetCountries: w.target_countries || [],
+            isIdVerified: false, hasBsn: false,
+            needsHousing: w.needs_housing || false,
+            langs: w.languages || [],
+            skills: w.skills || [],
+            bio: w.bio || "",
+            phone: w.phone || "", email: w.email || "",
+            lastActive: "Recently", hasVideo: false, responseRate: "—",
+            employmentType: w.employment_type || "permanent",
+            availableFrom: w.available_from || "Immediate",
+            reviews: [],
+          }));
+          setRealWorkers(mapped);
+        }
         go("companyDash");
       }
     };
@@ -680,6 +710,12 @@ export default function App() {
 
   // Worker stats
   const [workerStats, setWorkerStats] = useState({ views: 0, searches: 0 });
+
+  // Company stats
+  const [companyStats, setCompanyStats] = useState({ profilesViewed: 0, searches: 0, unlocks: 0 });
+
+  // Real workers from Supabase (merged with demo workers)
+  const [realWorkers, setRealWorkers] = useState([]);
 
   // Registration passwords
   const [regPassword, setRegPassword] = useState("");
@@ -851,7 +887,7 @@ export default function App() {
     if (screen !== "companyBrowse" || !supaUser) return;
     const timer = setTimeout(async () => {
       // Get currently visible workers after debounce
-      const visible = WORKERS.filter(w => {
+      const visible = ALL_WORKERS.filter(w => {
         if (search.trim()) {
           const q = search.toLowerCase();
           if (!w.name.toLowerCase().includes(q) && !w.role.toLowerCase().includes(q) &&
@@ -875,7 +911,8 @@ export default function App() {
   }, [screen, search, sector, workerTypeTab, filterVerified, filterNoHousing, filterEmployment, supaUser]);
 
   const destCC = companyProfile?.destCountry || "NL";
-  const filtered = WORKERS.filter(w => {
+  const ALL_WORKERS = [...WORKERS, ...realWorkers];
+  const filtered = ALL_WORKERS.filter(w => {
     if (!w.targetCountries.includes(destCC) && w.currentLoc !== destCC) return false;
     if (sector !== "All" && w.sector !== sector) return false;
     if (search && ![w.name,w.role,...w.skills].some(s=>s.toLowerCase().includes(search.toLowerCase()))) return false;
@@ -1973,7 +2010,7 @@ export default function App() {
               </div>
               <h3 className="font-black text-xl mb-1">{t.browseWorkers}</h3>
               <p className="text-indigo-200 text-sm">
-                {WORKERS.length} verified profiles — {filtered.length} match current filters
+                {ALL_WORKERS.length} verified profiles — {filtered.length} match current filters
               </p>
               <p className="text-indigo-300 text-xs mt-1">{t.unlockCost} · {credits} credits available</p>
             </div>
@@ -1985,8 +2022,8 @@ export default function App() {
           </div>
           <div className="space-y-4">
             {[
-              { icon:Eye, n:"142", label:t.dbProfiles, bg:"#EEF2FF", acc:C.indigo },
-              { icon:BarChart, n:"38", label:t.dbSearches, bg:"#ECFDF5", acc:"#059669" },
+              { icon:Eye, n:companyStats.profilesViewed, label:t.dbProfiles, bg:"#EEF2FF", acc:C.indigo },
+              { icon:BarChart, n:companyStats.searches, label:t.dbSearches, bg:"#ECFDF5", acc:"#059669" },
             ].map((s,i) => (
               <div key={i} className="rounded-2xl p-4 flex items-center gap-4" style={{ background:s.bg }}>
                 <s.icon className="w-7 h-7" style={{ color:s.acc }} />
