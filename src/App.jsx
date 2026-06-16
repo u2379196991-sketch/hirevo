@@ -168,6 +168,8 @@ const T = {
     loginBtn:"Sign In", loginNoAccount:"No account yet?", loginForgot:"Forgot password?",
     loginResetSent:"Password reset email sent — check your inbox.",
     alreadyHaveAccount:"Already have an account? Sign in",
+    createPassword:"Create a password", confirmPassword:"Confirm password",
+    passwordMismatch:"Passwords do not match.", passwordTooShort:"Password must be at least 8 characters.",
   },
   RO: {
     landingTitle:"Acces direct la talent european.",
@@ -291,6 +293,8 @@ const T = {
     loginBtn:"Conectare", loginNoAccount:"Nu ai cont?", loginForgot:"Ai uitat parola?",
     loginResetSent:"Email de resetare trimis — verifică inbox-ul.",
     alreadyHaveAccount:"Ai deja cont? Conectează-te",
+    createPassword:"Creează o parolă", confirmPassword:"Confirmă parola",
+    passwordMismatch:"Parolele nu se potrivesc.", passwordTooShort:"Parola trebuie să aibă cel puțin 8 caractere.",
   },
   NL: {
     landingTitle:"Directe toegang tot EU-talent.",
@@ -414,6 +418,8 @@ const T = {
     loginBtn:"Inloggen", loginNoAccount:"Nog geen account?", loginForgot:"Wachtwoord vergeten?",
     loginResetSent:"Wachtwoord reset e-mail verzonden — controleer je inbox.",
     alreadyHaveAccount:"Al een account? Inloggen",
+    createPassword:"Maak een wachtwoord aan", confirmPassword:"Bevestig wachtwoord",
+    passwordMismatch:"Wachtwoorden komen niet overeen.", passwordTooShort:"Wachtwoord moet minimaal 8 tekens bevatten.",
   },
 };
 const getLang = c => T[c] || T.EN;
@@ -664,6 +670,10 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginResetSent, setLoginResetSent] = useState(false);
+
+  // Registration passwords
+  const [regPassword, setRegPassword] = useState("");
+  const [regPasswordConfirm, setRegPasswordConfirm] = useState("");
 
   // Modals
   const [selectedWorker, setSelectedWorker] = useState(null);
@@ -1189,6 +1199,16 @@ export default function App() {
                   value={wForm.phone} onChange={e=>wf("phone",e.target.value)} placeholder="+40 7xx..." />
               </Field>
             </div>
+            <Field label={t.createPassword}>
+              <input className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                type="password" value={regPassword} onChange={e=>setRegPassword(e.target.value)}
+                placeholder="••••••••" />
+            </Field>
+            <Field label={t.confirmPassword}>
+              <input className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                type="password" value={regPasswordConfirm} onChange={e=>setRegPasswordConfirm(e.target.value)}
+                placeholder="••••••••" />
+            </Field>
             <div className="rounded-xl p-3 flex items-start gap-2" style={{ background:"#EEF2FF" }}>
               <Shield className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color:C.indigo }} />
               <p className="text-xs font-semibold" style={{ color:C.indigo }}>
@@ -1211,11 +1231,12 @@ export default function App() {
                 setAuthError(""); setAuthSuccess("");
                 if (!wForm.email.trim() || !wForm.name.trim()) { setAuthError("Please fill in your name and email."); return; }
                 if (isTempEmail(wForm.email)) { setAuthError("Temporary email addresses are not allowed. Please use a real email."); return; }
+                if (regPassword.length < 8) { setAuthError(t.passwordTooShort); return; }
+                if (regPassword !== regPasswordConfirm) { setAuthError(t.passwordMismatch); return; }
                 setAuthLoading(true);
-                const password = Math.random().toString(36).slice(-10) + "A1!";
                 const { data, error } = await supabase.auth.signUp({
                   email: wForm.email.trim().toLowerCase(),
-                  password,
+                  password: regPassword,
                   options: { data: { role:"worker", name:wForm.name, ...wForm } }
                 });
                 setAuthLoading(false);
@@ -1238,6 +1259,7 @@ export default function App() {
                     is_visible: true,
                   }]);
                   setWorkerProfile({...wForm});
+                  setRegPassword(""); setRegPasswordConfirm("");
                   setAuthSuccess("✓ Check your email to confirm your account, then you're live!");
                   setTimeout(()=>go("workerDash"), 2000);
                 }
@@ -1786,7 +1808,7 @@ export default function App() {
                       <button onClick={async () => {
                         if (supaUser) {
                           await supabase.from("workers").delete().eq("user_id", supaUser.id);
-                          await supabase.auth.admin?.deleteUser?.(supaUser.id);
+                          await supabase.functions.invoke("delete-user", { body: { user_id: supaUser.id } });
                           await supabase.auth.signOut();
                         }
                         setWorkerProfile(null); go("landing");
@@ -1850,6 +1872,14 @@ export default function App() {
               {t.freeToBrowseDesc}
             </p>
           </div>
+          <Field label={t.createPassword}>
+            <input className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400"
+              type="password" value={regPassword} onChange={e=>setRegPassword(e.target.value)} placeholder="••••••••" />
+          </Field>
+          <Field label={t.confirmPassword}>
+            <input className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400"
+              type="password" value={regPasswordConfirm} onChange={e=>setRegPasswordConfirm(e.target.value)} placeholder="••••••••" />
+          </Field>
           {authError && (
             <div className="rounded-xl px-3 py-2.5 text-sm font-bold" style={{ background:"#FEF2F2", color:"#991B1B" }}>
               {authError}
@@ -1864,11 +1894,12 @@ export default function App() {
             setAuthError(""); setAuthSuccess("");
             if (!cForm.compName.trim() || !cForm.email.trim()) return;
             if (isTempEmail(cForm.email)) { setAuthError("Temporary email addresses are not allowed. Please use a real email."); return; }
+            if (regPassword.length < 8) { setAuthError(t.passwordTooShort); return; }
+            if (regPassword !== regPasswordConfirm) { setAuthError(t.passwordMismatch); return; }
             setAuthLoading(true);
-            const password = Math.random().toString(36).slice(-10) + "A1!";
             const { data, error } = await supabase.auth.signUp({
               email: cForm.email.trim().toLowerCase(),
-              password,
+              password: regPassword,
               options: { data: { role:"company", compName:cForm.compName } }
             });
             setAuthLoading(false);
@@ -1881,6 +1912,7 @@ export default function App() {
                 dest_country: cForm.destCountry, industry: cForm.industry,
               }]);
               setCompanyProfile({...cForm});
+              setRegPassword(""); setRegPasswordConfirm("");
               setAuthSuccess("✓ Check your email to confirm your account!");
               setTimeout(()=>go("companyDash"), 2000);
             }
@@ -2815,6 +2847,7 @@ export default function App() {
                       <button onClick={async ()=>{ 
                         if (supaUser) {
                           await supabase.from("companies").delete().eq("user_id", supaUser.id);
+                          await supabase.functions.invoke("delete-user", { body: { user_id: supaUser.id } });
                           await supabase.auth.signOut();
                         }
                         setCompanyProfile(null); go("landing");
