@@ -1993,44 +1993,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* Credits + Plan Banner */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-2xl p-4 flex items-center justify-between sm:col-span-2"
-            style={{ background: companyPlan ? "#F0FDF4" : "#FFFBEB", border:`1px solid ${companyPlan?"#BBF7D0":"#FDE68A"}` }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ background: companyPlan?"#DCFCE7":"#FEF3C7" }}>
-                {companyPlan
-                  ? <CheckCircle className="w-5 h-5 text-emerald-600"/>
-                  : <BarChart className="w-5 h-5 text-amber-600"/>}
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500">{t.currentPlanLabel}</p>
-                <p className="font-black text-sm" style={{ color: companyPlan?"#059669":"#92400E" }}>
-                  {companyPlan ? `${t.activePlan} (${companyPlan})` : t.freePlanLabel}
-                </p>
-              </div>
-            </div>
-            {!companyPlan && (
-              <button onClick={() => openCompanyEdit("billing")}
-                className="text-xs font-black px-3 py-1.5 rounded-lg"
-                style={{ background:"#F59E0B", color:C.navy }}>
-                {t.subscribeTo}
-              </button>
-            )}
-          </div>
-          <div className="rounded-2xl p-4 flex items-center justify-between"
-            style={{ background:"#EEF2FF", border:`1px solid #C7D2FE` }}>
-            <div>
-              <p className="text-xs font-bold text-slate-500">{t.yourCredits}</p>
-              <p className="font-black text-2xl" style={{ color:C.indigo }}>{credits}</p>
-              <p className="text-xs text-slate-400">{t.creditsBalance}</p>
-            </div>
-            <button onClick={() => openCompanyEdit("billing")}
-              className="text-xs font-black px-3 py-1.5 rounded-lg text-white"
-              style={{ background:C.indigo }}>
-              {t.buyCredits}
-            </button>
+        {/* Coming Soon notice */}
+        <div className="rounded-2xl p-4 flex items-center gap-3 border-2 border-dashed border-slate-200 bg-white">
+          <Lock className="w-5 h-5 text-slate-300 flex-shrink-0" />
+          <div>
+            <p className="font-black text-sm text-slate-600">Credits & Subscriptions — Coming Soon</p>
+            <p className="text-xs text-slate-400 mt-0.5">Contact unlocks and payment plans are launching soon. Browse all profiles for free in the meantime.</p>
           </div>
         </div>
 
@@ -2047,7 +2015,6 @@ export default function App() {
               <p className="text-indigo-200 text-sm">
                 {ALL_WORKERS.length} verified profiles — {filtered.length} match current filters
               </p>
-              <p className="text-indigo-300 text-xs mt-1">{t.unlockCost} · {credits} credits available</p>
             </div>
             <button onClick={()=>go("companyBrowse")}
               className="mt-6 self-start px-6 py-3 bg-white font-black text-sm rounded-xl hover:bg-slate-50 transition-colors"
@@ -2617,89 +2584,13 @@ export default function App() {
                 <p className="text-xs text-slate-400">{t.unlockCost} · {t.noCreditsHint}</p>
               </div>
 
-              {/* Buy credits */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                <h3 className="font-black text-sm mb-1" style={{ color:C.navy }}>{t.buyCredits}</h3>
-                <p className="text-xs text-slate-500 mb-4">{t.bundleDesc}</p>
-                <div className="rounded-2xl p-4 flex items-center justify-between border-2 border-slate-200 mb-3">
-                  <div>
-                    <p className="font-black text-sm text-slate-900">{t.bundleTitle}</p>
-                    <p className="text-xs text-slate-500">30 credits — unlock 6 contacts</p>
-                  </div>
-                  <p className="font-black text-xl" style={{ color:C.navy }}>{t.bundlePrice}</p>
-                </div>
-                {bundleFlash && (
-                  <div className="rounded-xl px-3 py-2.5 flex items-center gap-2 text-sm font-bold mb-2"
-                    style={{background:"#F0FDF4",color:"#166534",border:"1px solid #BBF7D0"}}>
-                    <CheckCircle className="w-4 h-4"/>{t.creditsAdded} Balance: {credits} credits
-                  </div>
-                )}
-                <button onClick={()=>{ buyBundle(); setCompanySaveStatus("saved"); setTimeout(()=>setCompanySaveStatus(null),2000); }}
-                  className="w-full py-3 rounded-xl text-white font-black text-sm"
-                  style={{ background:C.indigo }}>
-                  {t.buyBundle} — €30 (+30 credits)
-                </button>
-
-                {/* Bulk pack */}
-                <div className="rounded-2xl p-4 flex items-center justify-between border-2 border-slate-200 mt-3 mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-black text-sm text-slate-900">{t.bulkTitle}</p>
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{background:"#FEF3C7",color:"#92400E"}}>{t.bulkSave}</span>
-                    </div>
-                    <p className="text-xs text-slate-500">{t.bulkDesc}</p>
-                  </div>
-                  <p className="font-black text-xl" style={{ color:C.navy }}>{t.bulkPrice}</p>
-                </div>
-                {bulkFlash && (
-                  <div className="rounded-xl px-3 py-2.5 flex items-center gap-2 text-sm font-bold mb-2"
-                    style={{background:"#F0FDF4",color:"#166534",border:"1px solid #BBF7D0"}}>
-                    <CheckCircle className="w-4 h-4"/>{t.creditsAdded} Balance: {credits} credits
-                  </div>
-                )}
-                <button onClick={()=>{ buyBulk(); setCompanySaveStatus("saved"); setTimeout(()=>setCompanySaveStatus(null),2000); }}
-                  className="w-full py-3 rounded-xl text-white font-black text-sm"
-                  style={{ background:C.navy }}>
-                  {t.buyBulk} — {t.bulkPrice} (+100 credits)
-                </button>
-              </div>
-
-              {/* Subscribe */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                <h3 className="font-black text-sm mb-4" style={{ color:C.navy }}>{t.subscriptionsTitle}</h3>
-                <div className="space-y-3">
-                  {[
-                    { key:"monthly", label:t.monthlyPlan, price:t.monthlyPrice, desc:t.monthlyDesc, hi:false },
-                    { key:"annual",  label:t.annualPlan,  price:t.annualPrice,  desc:t.annualDesc,  hi:true  },
-                  ].map(p=>(
-                    <div key={p.key} className="rounded-2xl p-4 flex items-center justify-between"
-                      style={{ border:p.hi?`2px solid ${C.indigo}`:"2px solid #E2E8F0", background:p.hi?"#EEF2FF":"white" }}>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-black text-sm text-slate-900">{p.label}</p>
-                          {p.hi&&<span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{background:C.indigo}}>{t.bestValue}</span>}
-                          {companyPlan===p.key&&<span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{t.active}</span>}
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5">{p.desc}</p>
-                      </div>
-                      <div className="text-right ml-4 flex-shrink-0">
-                        <p className="font-black text-base" style={{ color:C.navy }}>{p.price}</p>
-                        <button
-                          onClick={() => { setCompanyPlan(p.key); setCompanySaveStatus("saved"); setTimeout(()=>setCompanySaveStatus(null),2000); }}
-                          className="text-xs font-bold mt-1 px-3 py-1 rounded-lg text-white"
-                          style={{ background: companyPlan===p.key?"#94A3B8":C.indigo }}>
-                          {companyPlan===p.key ? "Active" : t.subscribeTo}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {companyPlan && (
-                  <button onClick={()=>setCompanyPlan(null)}
-                    className="mt-3 text-xs font-semibold text-slate-400 hover:text-red-400 transition-colors">
-                    {t.cancelSubscription}
-                  </button>
-                )}
+              {/* Buy credits — Coming Soon */}
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 text-center">
+                <Lock className="w-8 h-8 mx-auto mb-3 text-slate-300" />
+                <p className="font-black text-slate-700 text-sm mb-1">Credits & Subscriptions — Coming Soon</p>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
+                  Payments are launching soon. You'll be notified when credits and subscription plans go live.
+                </p>
               </div>
             </div>
           )}
