@@ -1,1 +1,31 @@
 
+# Hirevo.nl — robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Allow all major AI crawlers explicitly
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Sitemap
+Sitemap: https://hirevo.nl/sitemap.xml
