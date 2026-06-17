@@ -2134,14 +2134,18 @@ export default function App() {
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
           {[
             { label:t.compName, key:"compName", ph:"e.g. TransportCo NL B.V.", type:"text" },
-            { label:t.kvk, key:"kvk", ph:"e.g. 12345678", type:"text" },
+            { label:t.kvk, key:"kvk", ph:"e.g. 12345678", type:"text", hint:"8 digits only" },
             { label:t.email, key:"email", ph:"company@email.com", type:"email" },
             { label:t.phone, key:"phone", ph:"+31 6 xxxx xxxx", type:"tel" },
             { label:t.address, key:"address", ph:"Street, City, Country", type:"text" },
           ].map(f => (
             <Field key={f.key} label={`${f.label} *`}>
-              <input className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400"
+              <input className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400"
+                style={{ borderColor: f.key==="kvk" && cForm.kvk.trim() && !/^\d{8}$/.test(cForm.kvk.trim()) ? "#EF4444" : "#E2E8F0" }}
                 type={f.type} placeholder={f.ph} value={cForm[f.key]} onChange={e=>cf(f.key,e.target.value)} />
+              {f.key==="kvk" && cForm.kvk.trim() && !/^\d{8}$/.test(cForm.kvk.trim()) && (
+                <p className="text-xs text-red-500 mt-1">Must be exactly 8 digits</p>
+              )}
             </Field>
           ))}
           <Field label={`${t.hiringCountry} *`}>
@@ -2191,6 +2195,7 @@ export default function App() {
             if (isTempEmail(cForm.email)) { setAuthError("Temporary email addresses are not allowed. Please use a real email."); return; }
             if (regPassword.length < 8) { setAuthError(t.passwordTooShort); return; }
             if (regPassword !== regPasswordConfirm) { setAuthError(t.passwordMismatch); return; }
+            if (cForm.kvk.trim() && !/^\d{8}$/.test(cForm.kvk.trim())) { setAuthError("KVK number must be exactly 8 digits (e.g. 12345678)."); return; }
             setAuthLoading(true);
             const { data, error } = await supabase.auth.signUp({
               email: cForm.email.trim().toLowerCase(),
