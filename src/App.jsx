@@ -523,7 +523,7 @@ function LangPicker({ lang, setLang }) {
   );
 }
 
-function Nav({ lang, setLang, back, backLabel, title, onLogoClick }) {
+function Nav({ lang, setLang, back, backLabel, title, onLogoClick, onLogin }) {
   return (
     <nav className="sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-md"
       style={{ background:C.navy, borderBottom:`2px solid ${C.indigo}` }}>
@@ -536,14 +536,23 @@ function Nav({ lang, setLang, back, backLabel, title, onLogoClick }) {
         )}
         <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={onLogoClick}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-white text-xs"
-            style={{ background:C.indigo }}>N</div>
+            style={{ background:C.indigo }}>H</div>
           <span className="font-black text-white tracking-tight text-base">
             Hirevo<span style={{ color:C.indigoLight }}>.</span>
           </span>
         </div>
         {title && <span className="text-slate-500 text-xs truncate hidden sm:inline ml-1">/ {title}</span>}
       </div>
-      <LangPicker lang={lang} setLang={setLang} />
+      <div className="flex items-center gap-2">
+        {onLogin && (
+          <button onClick={onLogin}
+            className="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+            style={{ color:C.indigoLight, border:`1px solid rgba(79,70,229,0.4)` }}>
+            Sign In
+          </button>
+        )}
+        <LangPicker lang={lang} setLang={setLang} />
+      </div>
     </nav>
   );
 }
@@ -1044,7 +1053,7 @@ export default function App() {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
-  const navProps = { lang, setLang, onLogoClick:()=>go("landing") };
+  const navProps = { lang, setLang, onLogoClick:()=>go("landing"), onLogin:()=>{ setAuthError(""); setAuthSuccess(""); setLoginEmail(""); setLoginPassword(""); setLoginResetSent(false); go("login"); } };
 
   const CookieBanner = () => !cookieAccepted ? (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4" style={{ background:"rgba(15,23,42,0.97)", borderTop:"1px solid rgba(79,70,229,0.4)" }}>
@@ -1235,62 +1244,65 @@ export default function App() {
           <p className="text-slate-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">{t.landingSub}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto mb-14">
-          {/* Company */}
-          <div className="rounded-2xl p-6 flex flex-col gap-5"
-            style={{ background:"rgba(79,70,229,0.08)", border:`2px solid rgba(79,70,229,0.35)` }}>
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Building2 className="w-4 h-4" style={{ color:C.indigoLight }} />
-                <span className="font-black text-white">{t.forComp}</span>
+        {/* Worker card — FIRST and BIGGER */}
+        <div className="max-w-lg mx-auto mb-4">
+          <div className="rounded-2xl p-7 flex flex-col gap-5"
+            style={{ background:"rgba(16,185,129,0.08)", border:`2px solid rgba(16,185,129,0.4)` }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background:"rgba(16,185,129,0.2)" }}>
+                <Users className="w-5 h-5 text-emerald-400" />
               </div>
-              <div className="space-y-2">
-                {t.compFeatures.map((f,i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs text-slate-400">
-                    <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color:C.indigoLight }} />
-                    {f}
-                  </div>
-                ))}
+              <div>
+                <p className="font-black text-white text-lg">{t.forWork}</p>
+                <p className="text-emerald-400 text-xs font-bold">{t.freeNoCard}</p>
               </div>
             </div>
-            <button onClick={() => go("companyReg")}
-              className="w-full py-3 rounded-xl font-black text-sm text-white hover:opacity-90 transition-opacity"
-              style={{ background:C.indigo }}>
-              {t.companyBtn}
-            </button>
-          </div>
-
-          {/* Worker */}
-          <div className="rounded-2xl p-6 flex flex-col gap-5"
-            style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)" }}>
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-emerald-400" />
-                <span className="font-black text-white">{t.forWork}</span>
-              </div>
-              <div className="space-y-2">
-                {t.workerFeatures.map((f,i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs text-slate-400">
-                    <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-emerald-400" />
-                    {f}
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-2.5">
+              {t.workerFeatures.map((f,i) => (
+                <div key={i} className="flex items-start gap-2.5 text-sm text-slate-300">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-400" />
+                  {f}
+                </div>
+              ))}
             </div>
             <button onClick={() => go("workerReg")}
-              className="w-full py-3 rounded-xl font-black text-sm hover:opacity-90 transition-opacity"
+              className="w-full py-4 rounded-xl font-black text-base hover:opacity-90 transition-opacity"
               style={{ background:"#10B981", color:C.navy }}>
               {t.workerBtn}
             </button>
           </div>
         </div>
 
-        <button onClick={()=>{ setAuthError(""); setAuthSuccess(""); setLoginEmail(""); setLoginPassword(""); setLoginResetSent(false); go("login"); }}
-          className="w-full py-2.5 rounded-xl text-sm font-bold border border-slate-600 text-slate-400 hover:text-white hover:border-slate-400 transition-colors">
-          {t.alreadyHaveAccount}
-        </button>
+        {/* Company card — SECOND and SMALLER */}
+        <div className="max-w-lg mx-auto mb-8">
+          <div className="rounded-2xl p-5 flex flex-col gap-4"
+            style={{ background:"rgba(79,70,229,0.06)", border:`1px solid rgba(79,70,229,0.25)` }}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background:"rgba(79,70,229,0.2)" }}>
+                <Building2 className="w-4 h-4" style={{ color:C.indigoLight }} />
+              </div>
+              <p className="font-black text-white">{t.forComp}</p>
+            </div>
+            <div className="space-y-1.5">
+              {t.compFeatures.map((f,i) => (
+                <div key={i} className="flex items-start gap-2 text-xs text-slate-400">
+                  <CheckCircle className="w-3 h-3 flex-shrink-0 mt-0.5" style={{ color:C.indigoLight }} />
+                  {f}
+                </div>
+              ))}
+            </div>
+            <button onClick={() => go("companyReg")}
+              className="w-full py-2.5 rounded-xl font-black text-sm text-white hover:opacity-90 transition-opacity"
+              style={{ background:C.indigo }}>
+              {t.companyBtn}
+            </button>
+          </div>
+        </div>
 
-        <div className="flex justify-center gap-12">
+        {/* Stats */}
+        <div className="flex justify-center gap-12 mb-10">
           {[{ n:liveWorkerCount, l:t.verifiedProfilesLabel },{ n:"25", l:t.euLanguagesLabel },{ n:"0%", l:t.agencyFeeLabel }].map((s,i) => (
             <div key={i} className="text-center">
               <div className="font-black text-3xl text-white">{s.n}</div>
