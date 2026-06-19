@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Analytics } from "@vercel/analytics/react";
 import {
   Search, Star, X, CheckCircle, ChevronDown, Users, Clock,
   Mail, Home, Eye, TrendingUp, LogOut, Shield, Flag,
@@ -523,7 +524,7 @@ function LangPicker({ lang, setLang }) {
   );
 }
 
-function Nav({ lang, setLang, back, backLabel, title, onLogoClick, onLogin }) {
+function Nav({ lang, setLang, back, backLabel, title, onLogoClick, onLogin, onWhyUs }) {
   return (
     <nav className="sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-md"
       style={{ background:C.navy, borderBottom:`2px solid ${C.indigo}` }}>
@@ -544,6 +545,13 @@ function Nav({ lang, setLang, back, backLabel, title, onLogoClick, onLogin }) {
         {title && <span className="text-slate-500 text-xs truncate hidden sm:inline ml-1">/ {title}</span>}
       </div>
       <div className="flex items-center gap-2">
+        {onWhyUs && (
+          <button onClick={onWhyUs}
+            className="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+            style={{ color:"#94A3B8" }}>
+            Why Us
+          </button>
+        )}
         {onLogin && (
           <button onClick={onLogin}
             className="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
@@ -1018,6 +1026,7 @@ export default function App() {
   const SCREEN_MAP = {
     "": "landing", "landing": "landing",
     "privacy": "privacy", "terms": "terms",
+    "why-us": "whyUs",
     "login": "login",
     "register-worker": "workerReg", "register-company": "companyReg",
     "worker-dashboard": "workerDash", "worker-account": "workerAccount",
@@ -1027,6 +1036,8 @@ export default function App() {
 
   const SCREEN_TO_HASH = {
     "landing": "", "privacy": "privacy", "terms": "terms",
+    "whyUs": "why-us",
+    "why-us": "whyUs",
     "login": "login",
     "workerReg": "register-worker", "companyReg": "register-company",
     "workerDash": "worker-dashboard", "workerAccount": "worker-account",
@@ -1052,7 +1063,7 @@ export default function App() {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
-  const navProps = { lang, setLang, onLogoClick:()=>go("landing"), onLogin: supaUser ? null : ()=>{ setAuthError(""); setAuthSuccess(""); setLoginEmail(""); setLoginPassword(""); setLoginResetSent(false); go("login"); } };
+  const navProps = { lang, setLang, onLogoClick:()=>go("landing"), onLogin: supaUser ? null : ()=>{ setAuthError(""); setAuthSuccess(""); setLoginEmail(""); setLoginPassword(""); setLoginResetSent(false); go("login"); }, onWhyUs: ()=>go("whyUs") };
 
   const CookieBanner = () => !cookieAccepted ? (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4" style={{ background:"rgba(15,23,42,0.97)", borderTop:"1px solid rgba(79,70,229,0.4)" }}>
@@ -1073,6 +1084,271 @@ export default function App() {
       </div>
     </div>
   ) : null;
+
+  // ── WHY US ───────────────────────────────────────────────────────────────
+  if (screen === "whyUs") return (
+    <div className="min-h-screen" style={{ background:C.navy, fontFamily:"system-ui,sans-serif" }}>
+      <CookieBanner />
+      <Nav {...navProps} back={() => go("landing")} backLabel={t.back} title="Why Us" />
+      <div className="max-w-2xl mx-auto px-4 py-12 space-y-8">
+
+        {/* Hero */}
+        <div className="text-center mb-10">
+          <div className="inline-block px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-6"
+            style={{ background:"rgba(79,70,229,0.2)", color:C.indigoLight, border:`1px solid rgba(79,70,229,0.3)` }}>
+            {lang==="RO"?"De ce Hirevo":lang==="NL"?"Waarom Hirevo":"Why Hirevo"}
+          </div>
+          <h1 className="text-4xl font-black text-white mb-4 leading-tight">
+            {lang==="RO"?"Angajare directă. Fără intermediari."
+             :lang==="NL"?"Direct aanwerven. Zonder tussenpersonen."
+             :"Direct hiring. No middlemen."}
+          </h1>
+          <p className="text-slate-400 text-base leading-relaxed max-w-lg mx-auto">
+            {lang==="RO"?"Hirevo conectează companiile din Olanda și Germania direct cu muncitori verificați din Europa de Est — fără agenții, fără comisioane ascunse."
+             :lang==="NL"?"Hirevo verbindt bedrijven in Nederland en Duitsland rechtstreeks met geverifieerde werknemers uit Oost-Europa — zonder bureaus, zonder verborgen kosten."
+             :"Hirevo connects companies in the Netherlands and Germany directly with verified workers from Eastern Europe — no agencies, no hidden fees."}
+          </p>
+        </div>
+
+        {/* Comparatie */}
+        <div className="rounded-2xl overflow-hidden border border-slate-700">
+          <div className="grid grid-cols-2">
+            <div className="p-5 border-r border-slate-700" style={{ background:"rgba(220,38,38,0.08)" }}>
+              <p className="text-xs font-black uppercase tracking-widest text-red-400 mb-4">
+                {lang==="RO"?"Modelul vechi":lang==="NL"?"Het oude model":"The old model"}
+              </p>
+              <div className="space-y-3">
+                {(lang==="RO" ? [
+                  "Agenții care iau 15–25% comision",
+                  "Luni de așteptare pentru un candidat",
+                  "Nu știi cu cine vorbești înainte să plătești",
+                  "CV-uri irelevante, fără filtre",
+                  "Contracte cu clauze ascunse",
+                ] : lang==="NL" ? [
+                  "Bureaus die 15–25% commissie nemen",
+                  "Maanden wachten op een kandidaat",
+                  "Niet weten met wie je praat voor je betaalt",
+                  "Irrelevante cv's, geen filters",
+                  "Contracten met verborgen clausules",
+                ] : [
+                  "Agencies taking 15–25% commission",
+                  "Months of waiting for one candidate",
+                  "Not knowing who you're hiring before you pay",
+                  "Irrelevant CVs with no filtering",
+                  "Contracts with hidden clauses",
+                ]).map((item, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-slate-400">
+                    <span className="text-red-400 font-black flex-shrink-0 mt-0.5">✕</span>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="p-5" style={{ background:"rgba(16,185,129,0.08)" }}>
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-400 mb-4">Hirevo</p>
+              <div className="space-y-3">
+                {(lang==="RO" ? [
+                  "Taxă lunară fixă, fără comisioane",
+                  "Acces instant la baza de date",
+                  "Profiluri complete înainte să contactezi",
+                  "Filtre BSN, cazare, disponibilitate",
+                  "Contact direct — tu decizi",
+                ] : lang==="NL" ? [
+                  "Vaste maandelijkse vergoeding, geen commissie",
+                  "Directe toegang tot de database",
+                  "Volledige profielen voor je contact opneemt",
+                  "BSN, huisvesting, beschikbaarheidsfilters",
+                  "Direct contact — jij beslist",
+                ] : [
+                  "Flat monthly fee, zero commission",
+                  "Instant access to the database",
+                  "Full profiles before you contact anyone",
+                  "BSN, housing, availability filters",
+                  "Direct contact — you decide",
+                ]).map((item, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                    <span className="text-emerald-400 font-black flex-shrink-0 mt-0.5">✓</span>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Calculator */}
+        <div className="rounded-2xl border border-slate-700 overflow-hidden" style={{ background:"rgba(255,255,255,0.03)" }}>
+          <div className="px-6 pt-6 pb-2">
+            <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color:C.indigoLight }}>
+              {lang==="RO"?"Calculator economii":lang==="NL"?"Besparingscalculator":"Savings calculator"}
+            </p>
+            <h2 className="text-xl font-black text-white mb-1">
+              {lang==="RO"?"Cât economisești lunar față de o agenție?"
+               :lang==="NL"?"Hoeveel bespaar je maandelijks vs. een bureau?"
+               :"How much do you save monthly vs. an agency?"}
+            </h2>
+            <p className="text-slate-400 text-sm mb-4">
+              {lang==="RO"?"Ajustează parametrii și vezi economiile în timp real."
+               :lang==="NL"?"Pas de parameters aan en zie de besparingen in realtime."
+               :"Adjust the parameters and see savings in real time."}
+            </p>
+          </div>
+
+          {/* Sliders */}
+          <div className="px-6 pb-4 space-y-4">
+            {[
+              { id:"wSalary", label: lang==="RO"?"Salariu brut lunar / angajat":lang==="NL"?"Bruto maandloon / werknemer":"Gross monthly salary / employee", min:1500, max:5000, step:100, init:2500, fmt: v=>`€${parseInt(v).toLocaleString()}` },
+              { id:"wHires",  label: lang==="RO"?"Angajări noi / lună":lang==="NL"?"Nieuwe aanwervingen / maand":"New hires / month", min:1, max:20, step:1, init:3, fmt: v=>v },
+              { id:"wComm",   label: lang==="RO"?"Comision agenție":lang==="NL"?"Bureaucommissie":"Agency commission", min:10, max:30, step:1, init:18, fmt: v=>`${v}%` },
+            ].map(s => (
+              <div key={s.id}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs text-slate-400">{s.label}</span>
+                  <span className="text-xs font-black text-white" id={`${s.id}-out`}>{s.fmt(s.init)}</span>
+                </div>
+                <input type="range" id={s.id} min={s.min} max={s.max} step={s.step} defaultValue={s.init}
+                  className="w-full" style={{ accentColor:C.indigo }} />
+              </div>
+            ))}
+          </div>
+
+          {/* Metrics */}
+          <div className="grid grid-cols-3 gap-3 px-6 pb-4">
+            {[
+              { id:"wAgencyCost", label: lang==="RO"?"Cost agenție / lună":lang==="NL"?"Bureaukosten / maand":"Agency cost / month", color:"#DC2626" },
+              { id:"wHirevoCost", label: "Hirevo / lună", color:C.indigoLight },
+              { id:"wSavings",    label: lang==="RO"?"Economii / lună":lang==="NL"?"Besparing / maand":"Savings / month", color:"#10B981" },
+            ].map(m => (
+              <div key={m.id} className="rounded-xl p-3 text-center" style={{ background:"rgba(255,255,255,0.05)" }}>
+                <div className="text-xs text-slate-400 mb-1">{m.label}</div>
+                <div className="text-lg font-black" style={{ color:m.color }} id={m.id}>—</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bare comparatie */}
+          <div className="px-6 pb-4 space-y-2">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400 w-20 text-right">
+                {lang==="RO"?"Agenție":lang==="NL"?"Bureau":"Agency"}
+              </span>
+              <div className="flex-1 bg-slate-800 rounded-full h-3 overflow-hidden">
+                <div id="wBarAgency" className="h-full rounded-full transition-all duration-500" style={{ background:"#DC2626", width:"100%" }} />
+              </div>
+              <span className="text-xs font-black text-red-400 w-16" id="wBarAgencyLabel">—</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400 w-20 text-right">Hirevo</span>
+              <div className="flex-1 bg-slate-800 rounded-full h-3 overflow-hidden">
+                <div id="wBarHirevo" className="h-full rounded-full transition-all duration-500" style={{ background:"#10B981", width:"27%" }} />
+              </div>
+              <span className="text-xs font-black text-emerald-400 w-16" id="wBarHirevoLabel">€370</span>
+            </div>
+          </div>
+
+          {/* Economii anuale */}
+          <div className="mx-6 mb-6 rounded-xl p-4 flex items-center justify-between" style={{ background:"rgba(16,185,129,0.15)", border:"1px solid rgba(16,185,129,0.3)" }}>
+            <div>
+              <div className="text-xs text-emerald-400 font-bold mb-1">
+                {lang==="RO"?"Economii anuale estimate":lang==="NL"?"Geschatte jaarlijkse besparing":"Estimated annual savings"}
+              </div>
+              <div className="text-3xl font-black text-emerald-400" id="wAnnual">—</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-emerald-400 font-bold mb-1">ROI</div>
+              <div className="text-2xl font-black text-emerald-400" id="wRoi">—</div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="px-6 pb-6">
+            <button onClick={() => go("companyReg")}
+              className="w-full py-3 rounded-xl font-black text-white text-sm hover:opacity-90 transition-opacity"
+              style={{ background:C.indigo }}>
+              {lang==="RO"?"Vezi planurile de preț":lang==="NL"?"Bekijk prijsplannen":"See pricing plans"} →
+            </button>
+          </div>
+        </div>
+
+        {/* 3 piloni */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { icon:"🎯", title: lang==="RO"?"Direct":lang==="NL"?"Direct":"Direct",
+              desc: lang==="RO"?"Contactezi muncitorul direct. Fără intermediar care să filtreze, să întârzie sau să negocieze în locul tău."
+                   :lang==="NL"?"Je neemt direct contact op met de werknemer. Geen tussenpersoon die filtert, vertraagt of voor jou onderhandelt."
+                   :"You contact the worker directly. No middleman filtering, delaying or negotiating on your behalf." },
+            { icon:"✅", title: lang==="RO"?"Verificat":lang==="NL"?"Geverifieerd":"Verified",
+              desc: lang==="RO"?"Fiecare profil include experiență reală, documente UE și verificare biometrică opțională."
+                   :lang==="NL"?"Elk profiel bevat echte ervaring, EU-documenten en optionele biometrische ID-verificatie."
+                   :"Every profile includes real experience, EU documents and optional biometric ID verification." },
+            { icon:"💶", title: lang==="RO"?"Transparent":lang==="NL"?"Transparant":"Transparent",
+              desc: lang==="RO"?"Știi exact cât plătești înainte să începi. Nicio surpriză, niciun comision per angajare."
+                   :lang==="NL"?"Je weet precies wat je betaalt voordat je begint. Geen verrassingen, geen commissie per aanwerving."
+                   :"You know exactly what you pay before you start. No surprises, no per-hire commission." },
+          ].map((p, i) => (
+            <div key={i} className="rounded-2xl p-5 border border-slate-700" style={{ background:"rgba(255,255,255,0.03)" }}>
+              <div className="text-3xl mb-3">{p.icon}</div>
+              <h3 className="font-black text-white text-base mb-2">{p.title}</h3>
+              <p className="text-slate-400 text-xs leading-relaxed">{p.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer CTA */}
+        <div className="rounded-2xl p-7 text-center border border-slate-700" style={{ background:"rgba(79,70,229,0.1)" }}>
+          <h3 className="font-black text-white text-xl mb-2">
+            {lang==="RO"?"Gata să angajezi direct?":lang==="NL"?"Klaar om direct aan te werven?":"Ready to hire directly?"}
+          </h3>
+          <p className="text-slate-400 text-sm mb-5">
+            {lang==="RO"?"Creează un cont de companie și accesează toată baza de date."
+             :lang==="NL"?"Maak een bedrijfsaccount aan en krijg toegang tot de volledige database."
+             :"Create a company account and access the full database."}
+          </p>
+          <button onClick={() => go("companyReg")}
+            className="px-8 py-3 rounded-xl font-black text-white text-sm hover:opacity-90 transition-opacity"
+            style={{ background:C.indigo }}>
+            {lang==="RO"?"Vezi planurile de preț":lang==="NL"?"Bekijk prijsplannen":"See pricing plans"} →
+          </button>
+        </div>
+
+      </div>
+
+      {/* Calculator script */}
+      <script dangerouslySetInnerHTML={{ __html: `
+        (function() {
+          function calc() {
+            var salary = parseInt(document.getElementById('wSalary').value);
+            var hires  = parseInt(document.getElementById('wHires').value);
+            var comm   = parseInt(document.getElementById('wComm').value);
+            document.getElementById('wSalary-out').textContent = '€' + salary.toLocaleString();
+            document.getElementById('wHires-out').textContent  = hires;
+            document.getElementById('wComm-out').textContent   = comm + '%';
+            var agCost = salary * (comm / 100) * hires;
+            var hCost  = 370;
+            var sav    = agCost - hCost;
+            var annual = sav * 12;
+            var roi    = Math.round((sav / hCost) * 100);
+            var fmt    = function(n) { return '€' + Math.round(n).toLocaleString(); };
+            document.getElementById('wAgencyCost').textContent = fmt(agCost);
+            document.getElementById('wHirevoCost').textContent = fmt(hCost);
+            document.getElementById('wSavings').textContent    = sav > 0 ? fmt(sav) : '—';
+            document.getElementById('wAnnual').textContent     = annual > 0 ? fmt(annual) : '—';
+            document.getElementById('wRoi').textContent        = roi > 0 ? roi + '%' : '—';
+            var max = Math.max(agCost, hCost);
+            document.getElementById('wBarAgency').style.width  = Math.round((agCost / max) * 100) + '%';
+            document.getElementById('wBarHirevo').style.width  = Math.round((hCost  / max) * 100) + '%';
+            document.getElementById('wBarAgencyLabel').textContent = fmt(agCost);
+            document.getElementById('wBarHirevoLabel').textContent = fmt(hCost);
+          }
+          ['wSalary','wHires','wComm'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('input', calc);
+          });
+          calc();
+        })();
+      ` }} />
+    </div>
+  );
 
   // ── PRIVACY POLICY ────────────────────────────────────────────────────────
   if (screen === "privacy") return (
@@ -2915,7 +3191,7 @@ export default function App() {
     );
   }
 
-  return null;
+  return <Analytics />;
 }
 
 // ─── SUB-COMPONENTS ───────────────────────────────────────────────────────────
