@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Analytics } from "@vercel/analytics/react";
 import {
   Search, Star, X, CheckCircle, ChevronDown, Users, Clock,
   Mail, Home, Eye, TrendingUp, LogOut, Shield, Flag,
@@ -734,7 +733,7 @@ export default function App() {
   const [cookieAccepted, setCookieAccepted] = useState(() => localStorage.getItem("hirevo_cookie") === "1");
 
   // Live worker count for landing page
-  const [liveWorkerCount, setLiveWorkerCount] = useState(WORKERS.length);
+  const [liveWorkerCount, setLiveWorkerCount] = useState(0);
 
   // Company stats
   const [companyStats, setCompanyStats] = useState({ profilesViewed: 0, searches: 0, unlocks: 0 });
@@ -933,7 +932,7 @@ export default function App() {
       const { count } = await supabase.from("workers")
         .select("*", { count:"exact", head:true })
         .eq("is_visible", true);
-      if (count !== null) setLiveWorkerCount(WORKERS.length + count);
+      if (count !== null) setLiveWorkerCount(count);
     };
     fetchCount();
     // Refresh every 60 seconds while on landing page
@@ -2916,7 +2915,7 @@ export default function App() {
     );
   }
 
-  return <Analytics />;
+  return null;
 }
 
 // ─── SUB-COMPONENTS ───────────────────────────────────────────────────────────
@@ -3010,4 +3009,3 @@ function FiltersContent({ t, workerTypeTab, setWorkerTypeTab, sector, setSector,
     </>
   );
 }
- 
