@@ -1086,7 +1086,20 @@ export default function App() {
   ) : null;
 
   // ── WHY US ───────────────────────────────────────────────────────────────
-  if (screen === "whyUs") return (
+  // ── WHY US ───────────────────────────────────────────────────────────────
+  if (screen === "whyUs") {
+    const [wSalary, setWSalary] = React.useState(2500);
+    const [wHires, setWHires]   = React.useState(3);
+    const [wComm, setWComm]     = React.useState(18);
+    const agCost    = wSalary * (wComm / 100) * wHires;
+    const hCost     = 370;
+    const savings   = agCost - hCost;
+    const annual    = savings * 12;
+    const roi       = Math.round((savings / hCost) * 100);
+    const maxVal    = Math.max(agCost, hCost);
+    const fmt       = n => "€" + Math.round(n).toLocaleString();
+
+    return (
     <div className="min-h-screen" style={{ background:C.navy, fontFamily:"system-ui,sans-serif" }}>
       <CookieBanner />
       <Nav {...navProps} back={() => go("landing")} backLabel={t.back} title="Why Us" />
@@ -1178,7 +1191,7 @@ export default function App() {
 
         {/* Calculator */}
         <div className="rounded-2xl border border-slate-700 overflow-hidden" style={{ background:"rgba(255,255,255,0.03)" }}>
-          <div className="px-6 pt-6 pb-2">
+          <div className="px-6 pt-6 pb-4">
             <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color:C.indigoLight }}>
               {lang==="RO"?"Calculator economii":lang==="NL"?"Besparingscalculator":"Savings calculator"}
             </p>
@@ -1187,83 +1200,91 @@ export default function App() {
                :lang==="NL"?"Hoeveel bespaar je maandelijks vs. een bureau?"
                :"How much do you save monthly vs. an agency?"}
             </h2>
-            <p className="text-slate-400 text-sm mb-4">
+            <p className="text-slate-400 text-sm mb-6">
               {lang==="RO"?"Ajustează parametrii și vezi economiile în timp real."
                :lang==="NL"?"Pas de parameters aan en zie de besparingen in realtime."
                :"Adjust the parameters and see savings in real time."}
             </p>
-          </div>
 
-          {/* Sliders */}
-          <div className="px-6 pb-4 space-y-4">
-            {[
-              { id:"wSalary", label: lang==="RO"?"Salariu brut lunar / angajat":lang==="NL"?"Bruto maandloon / werknemer":"Gross monthly salary / employee", min:1500, max:5000, step:100, init:2500, fmt: v=>`€${parseInt(v).toLocaleString()}` },
-              { id:"wHires",  label: lang==="RO"?"Angajări noi / lună":lang==="NL"?"Nieuwe aanwervingen / maand":"New hires / month", min:1, max:20, step:1, init:3, fmt: v=>v },
-              { id:"wComm",   label: lang==="RO"?"Comision agenție":lang==="NL"?"Bureaucommissie":"Agency commission", min:10, max:30, step:1, init:18, fmt: v=>`${v}%` },
-            ].map(s => (
-              <div key={s.id}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-xs text-slate-400">{s.label}</span>
-                  <span className="text-xs font-black text-white" id={`${s.id}-out`}>{s.fmt(s.init)}</span>
+            {/* Sliders */}
+            <div className="space-y-5">
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-xs text-slate-400">{lang==="RO"?"Salariu brut lunar / angajat":lang==="NL"?"Bruto maandloon / werknemer":"Gross monthly salary / employee"}</span>
+                  <span className="text-xs font-black text-white">{fmt(wSalary)}</span>
                 </div>
-                <input type="range" id={s.id} min={s.min} max={s.max} step={s.step} defaultValue={s.init}
+                <input type="range" min="1500" max="5000" step="100" value={wSalary}
+                  onChange={e => setWSalary(parseInt(e.target.value))}
                   className="w-full" style={{ accentColor:C.indigo }} />
               </div>
-            ))}
-          </div>
-
-          {/* Metrics */}
-          <div className="grid grid-cols-3 gap-3 px-6 pb-4">
-            {[
-              { id:"wAgencyCost", label: lang==="RO"?"Cost agenție / lună":lang==="NL"?"Bureaukosten / maand":"Agency cost / month", color:"#DC2626" },
-              { id:"wHirevoCost", label: "Hirevo / lună", color:C.indigoLight },
-              { id:"wSavings",    label: lang==="RO"?"Economii / lună":lang==="NL"?"Besparing / maand":"Savings / month", color:"#10B981" },
-            ].map(m => (
-              <div key={m.id} className="rounded-xl p-3 text-center" style={{ background:"rgba(255,255,255,0.05)" }}>
-                <div className="text-xs text-slate-400 mb-1">{m.label}</div>
-                <div className="text-lg font-black" style={{ color:m.color }} id={m.id}>—</div>
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-xs text-slate-400">{lang==="RO"?"Angajări noi / lună":lang==="NL"?"Nieuwe aanwervingen / maand":"New hires / month"}</span>
+                  <span className="text-xs font-black text-white">{wHires}</span>
+                </div>
+                <input type="range" min="1" max="20" step="1" value={wHires}
+                  onChange={e => setWHires(parseInt(e.target.value))}
+                  className="w-full" style={{ accentColor:C.indigo }} />
               </div>
-            ))}
-          </div>
-
-          {/* Bare comparatie */}
-          <div className="px-6 pb-4 space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-slate-400 w-20 text-right">
-                {lang==="RO"?"Agenție":lang==="NL"?"Bureau":"Agency"}
-              </span>
-              <div className="flex-1 bg-slate-800 rounded-full h-3 overflow-hidden">
-                <div id="wBarAgency" className="h-full rounded-full transition-all duration-500" style={{ background:"#DC2626", width:"100%" }} />
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-xs text-slate-400">{lang==="RO"?"Comision agenție":lang==="NL"?"Bureaucommissie":"Agency commission"}</span>
+                  <span className="text-xs font-black text-white">{wComm}%</span>
+                </div>
+                <input type="range" min="10" max="30" step="1" value={wComm}
+                  onChange={e => setWComm(parseInt(e.target.value))}
+                  className="w-full" style={{ accentColor:C.indigo }} />
               </div>
-              <span className="text-xs font-black text-red-400 w-16" id="wBarAgencyLabel">—</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-slate-400 w-20 text-right">Hirevo</span>
-              <div className="flex-1 bg-slate-800 rounded-full h-3 overflow-hidden">
-                <div id="wBarHirevo" className="h-full rounded-full transition-all duration-500" style={{ background:"#10B981", width:"27%" }} />
-              </div>
-              <span className="text-xs font-black text-emerald-400 w-16" id="wBarHirevoLabel">€370</span>
-            </div>
-          </div>
 
-          {/* Economii anuale */}
-          <div className="mx-6 mb-6 rounded-xl p-4 flex items-center justify-between" style={{ background:"rgba(16,185,129,0.15)", border:"1px solid rgba(16,185,129,0.3)" }}>
-            <div>
-              <div className="text-xs text-emerald-400 font-bold mb-1">
-                {lang==="RO"?"Economii anuale estimate":lang==="NL"?"Geschatte jaarlijkse besparing":"Estimated annual savings"}
-              </div>
-              <div className="text-3xl font-black text-emerald-400" id="wAnnual">—</div>
+            {/* Metrics */}
+            <div className="grid grid-cols-3 gap-3 mt-6">
+              {[
+                { label: lang==="RO"?"Cost agenție / lună":lang==="NL"?"Bureaukosten / maand":"Agency cost / month", val: fmt(agCost), color:"#DC2626" },
+                { label: "Hirevo / lună", val: fmt(hCost), color:C.indigoLight },
+                { label: lang==="RO"?"Economii / lună":lang==="NL"?"Besparing / maand":"Savings / month", val: savings > 0 ? fmt(savings) : "—", color:"#10B981" },
+              ].map((m, i) => (
+                <div key={i} className="rounded-xl p-3 text-center" style={{ background:"rgba(255,255,255,0.05)" }}>
+                  <div className="text-xs text-slate-400 mb-1">{m.label}</div>
+                  <div className="text-lg font-black" style={{ color:m.color }}>{m.val}</div>
+                </div>
+              ))}
             </div>
-            <div className="text-right">
-              <div className="text-xs text-emerald-400 font-bold mb-1">ROI</div>
-              <div className="text-2xl font-black text-emerald-400" id="wRoi">—</div>
-            </div>
-          </div>
 
-          {/* CTA */}
-          <div className="px-6 pb-6">
+            {/* Bare */}
+            <div className="mt-5 space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400 w-20 text-right">{lang==="RO"?"Agenție":lang==="NL"?"Bureau":"Agency"}</span>
+                <div className="flex-1 rounded-full h-3 overflow-hidden" style={{ background:"rgba(255,255,255,0.1)" }}>
+                  <div className="h-full rounded-full transition-all duration-300" style={{ background:"#DC2626", width: Math.round((agCost/maxVal)*100)+"%" }} />
+                </div>
+                <span className="text-xs font-black text-red-400 w-16">{fmt(agCost)}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400 w-20 text-right">Hirevo</span>
+                <div className="flex-1 rounded-full h-3 overflow-hidden" style={{ background:"rgba(255,255,255,0.1)" }}>
+                  <div className="h-full rounded-full transition-all duration-300" style={{ background:"#10B981", width: Math.round((hCost/maxVal)*100)+"%" }} />
+                </div>
+                <span className="text-xs font-black text-emerald-400 w-16">{fmt(hCost)}</span>
+              </div>
+            </div>
+
+            {/* Economii anuale */}
+            <div className="mt-5 rounded-xl p-4 flex items-center justify-between" style={{ background:"rgba(16,185,129,0.15)", border:"1px solid rgba(16,185,129,0.3)" }}>
+              <div>
+                <div className="text-xs text-emerald-400 font-bold mb-1">
+                  {lang==="RO"?"Economii anuale estimate":lang==="NL"?"Geschatte jaarlijkse besparing":"Estimated annual savings"}
+                </div>
+                <div className="text-3xl font-black text-emerald-400">{annual > 0 ? fmt(annual) : "—"}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-emerald-400 font-bold mb-1">ROI</div>
+                <div className="text-2xl font-black text-emerald-400">{roi > 0 ? roi+"%" : "—"}</div>
+              </div>
+            </div>
+
             <button onClick={() => go("companyReg")}
-              className="w-full py-3 rounded-xl font-black text-white text-sm hover:opacity-90 transition-opacity"
+              className="w-full mt-5 py-3 rounded-xl font-black text-white text-sm hover:opacity-90 transition-opacity"
               style={{ background:C.indigo }}>
               {lang==="RO"?"Vezi planurile de preț":lang==="NL"?"Bekijk prijsplannen":"See pricing plans"} →
             </button>
@@ -1312,43 +1333,9 @@ export default function App() {
         </div>
 
       </div>
-
-      {/* Calculator script */}
-      <script dangerouslySetInnerHTML={{ __html: `
-        (function() {
-          function calc() {
-            var salary = parseInt(document.getElementById('wSalary').value);
-            var hires  = parseInt(document.getElementById('wHires').value);
-            var comm   = parseInt(document.getElementById('wComm').value);
-            document.getElementById('wSalary-out').textContent = '€' + salary.toLocaleString();
-            document.getElementById('wHires-out').textContent  = hires;
-            document.getElementById('wComm-out').textContent   = comm + '%';
-            var agCost = salary * (comm / 100) * hires;
-            var hCost  = 370;
-            var sav    = agCost - hCost;
-            var annual = sav * 12;
-            var roi    = Math.round((sav / hCost) * 100);
-            var fmt    = function(n) { return '€' + Math.round(n).toLocaleString(); };
-            document.getElementById('wAgencyCost').textContent = fmt(agCost);
-            document.getElementById('wHirevoCost').textContent = fmt(hCost);
-            document.getElementById('wSavings').textContent    = sav > 0 ? fmt(sav) : '—';
-            document.getElementById('wAnnual').textContent     = annual > 0 ? fmt(annual) : '—';
-            document.getElementById('wRoi').textContent        = roi > 0 ? roi + '%' : '—';
-            var max = Math.max(agCost, hCost);
-            document.getElementById('wBarAgency').style.width  = Math.round((agCost / max) * 100) + '%';
-            document.getElementById('wBarHirevo').style.width  = Math.round((hCost  / max) * 100) + '%';
-            document.getElementById('wBarAgencyLabel').textContent = fmt(agCost);
-            document.getElementById('wBarHirevoLabel').textContent = fmt(hCost);
-          }
-          ['wSalary','wHires','wComm'].forEach(function(id) {
-            var el = document.getElementById(id);
-            if (el) el.addEventListener('input', calc);
-          });
-          calc();
-        })();
-      ` }} />
     </div>
-  );
+    );
+  }
 
   // ── PRIVACY POLICY ────────────────────────────────────────────────────────
   if (screen === "privacy") return (
