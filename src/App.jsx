@@ -606,12 +606,7 @@ export default function App() {
           languages: (workerData.languages||[]).map(l=>({name:l})),
         });
         setProfileVisible(workerData.is_visible ?? true);
-        // Load avatar
-        const { data: avatarData } = supabase.storage.from("avatars").getPublicUrl(`worker/${user.id}.jpg`);
-        const { data: avatarPng } = supabase.storage.from("avatars").getPublicUrl(`worker/${user.id}.png`);
-        // Try to fetch to see which exists
-        fetch(avatarData.publicUrl).then(r => { if(r.ok) setWorkerAvatar(avatarData.publicUrl); })
-          .catch(()=>fetch(avatarPng.publicUrl).then(r=>{ if(r.ok) setWorkerAvatar(avatarPng.publicUrl); }).catch(()=>{}));
+        if (workerData.avatar_url) setWorkerAvatar(workerData.avatar_url);
         go("workerDash");
         // Load stats
         const { count: viewCount } = await supabase.from("profile_views")
@@ -641,12 +636,10 @@ export default function App() {
         const { data: dbWorkers } = await supabase.from("workers").select("*").eq("is_visible", true);
         if (dbWorkers && dbWorkers.length > 0) {
           const mapped = dbWorkers.map((w, i) => {
-            const { data: avJpg } = supabase.storage.from("avatars").getPublicUrl(`worker/${w.user_id}.jpg`);
-            const { data: avPng } = supabase.storage.from("avatars").getPublicUrl(`worker/${w.user_id}.png`);
             return {
               id: `db-${w.id}`, name: w.name, initials: w.name.split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2),
               accent: ["#16A34A","#7C3AED","#DC2626","#2563EB","#0891B2","#EA580C"][i % 6],
-              avatarUrl: avJpg.publicUrl,
+              avatarUrl: w.avatar_url || null,
               role: w.role || "—", sector: w.sector || "Logistics", exp: w.experience || "—",
               rating: 4.8, placed: 0, avail: "green",
               currentLoc: w.current_loc || "RO", currentCity: w.current_city || "—",
@@ -874,13 +867,19 @@ export default function App() {
   const uploadAvatar = async (file, type) => {
     if (!supaUser || !file) return;
     setAvatarUploading(true);
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split(".").pop().toLowerCase();
     const path = `${type}/${supaUser.id}.${ext}`;
     const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (!error) {
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      if (type === "worker") setWorkerAvatar(data.publicUrl + "?t=" + Date.now());
-      else setCompanyAvatar(data.publicUrl + "?t=" + Date.now());
+      const url = data.publicUrl + "?t=" + Date.now();
+      if (type === "worker") {
+        setWorkerAvatar(url);
+        await supabase.from("workers").update({ avatar_url: data.publicUrl }).eq("user_id", supaUser.id);
+      } else {
+        setCompanyAvatar(url);
+        await supabase.from("companies").update({ avatar_url: data.publicUrl }).eq("user_id", supaUser.id);
+      }
     }
     setAvatarUploading(false);
   };
