@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Analytics } from "@vercel/analytics/react";
 import {
   Search, Star, X, CheckCircle, ChevronDown, Users, Clock,
   Mail, Home, Eye, TrendingUp, LogOut, Shield, Flag,
@@ -2915,7 +2916,7 @@ export default function App() {
     );
   }
 
-  return null;
+  return <Analytics />;
 }
 
 // ─── SUB-COMPONENTS ───────────────────────────────────────────────────────────
