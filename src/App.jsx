@@ -1053,7 +1053,7 @@ export default function App() {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
-  const navProps = { lang, setLang, onLogoClick:()=>go("landing"), onLogin:()=>{ setAuthError(""); setAuthSuccess(""); setLoginEmail(""); setLoginPassword(""); setLoginResetSent(false); go("login"); } };
+  const navProps = { lang, setLang, onLogoClick:()=>go("landing"), onLogin: supaUser ? null : ()=>{ setAuthError(""); setAuthSuccess(""); setLoginEmail(""); setLoginPassword(""); setLoginResetSent(false); go("login"); } };
 
   const CookieBanner = () => !cookieAccepted ? (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4" style={{ background:"rgba(15,23,42,0.97)", borderTop:"1px solid rgba(79,70,229,0.4)" }}>
