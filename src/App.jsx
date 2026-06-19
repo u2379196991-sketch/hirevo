@@ -749,6 +749,11 @@ export default function App() {
   // Real workers from Supabase (merged with demo workers)
   const [realWorkers, setRealWorkers] = useState([]);
 
+  // Why Us calculator state
+  const [wSalary, setWSalary] = useState(2500);
+  const [wHires, setWHires]   = useState(3);
+  const [wComm, setWComm]     = useState(18);
+
   // Registration passwords
   const [regPassword, setRegPassword] = useState("");
   const [regPasswordConfirm, setRegPasswordConfirm] = useState("");
@@ -1087,253 +1092,247 @@ export default function App() {
 
   // ── WHY US ───────────────────────────────────────────────────────────────
   // ── WHY US ───────────────────────────────────────────────────────────────
+  // ── WHY US ───────────────────────────────────────────────────────────────
   if (screen === "whyUs") {
-    const [wSalary, setWSalary] = React.useState(2500);
-    const [wHires, setWHires]   = React.useState(3);
-    const [wComm, setWComm]     = React.useState(18);
-    const agCost    = wSalary * (wComm / 100) * wHires;
-    const hCost     = 370;
-    const savings   = agCost - hCost;
-    const annual    = savings * 12;
-    const roi       = Math.round((savings / hCost) * 100);
-    const maxVal    = Math.max(agCost, hCost);
-    const fmt       = n => "€" + Math.round(n).toLocaleString();
+    const agCost = wSalary * (wComm / 100) * wHires;
+    const hCost  = 370;
+    const savings = agCost - hCost;
+    const annual  = savings * 12;
+    const roi     = Math.round((savings / hCost) * 100);
+    const maxVal  = Math.max(agCost, hCost);
+    const fmt     = n => "€" + Math.round(n).toLocaleString();
 
     return (
-    <div className="min-h-screen" style={{ background:C.navy, fontFamily:"system-ui,sans-serif" }}>
-      <CookieBanner />
-      <Nav {...navProps} back={() => go("landing")} backLabel={t.back} title="Why Us" />
-      <div className="max-w-2xl mx-auto px-4 py-12 space-y-8">
+      <div className="min-h-screen" style={{ background:C.navy, fontFamily:"system-ui,sans-serif" }}>
+        <CookieBanner />
+        <Nav {...navProps} back={() => go("landing")} backLabel={t.back} title="Why Us" />
+        <div className="max-w-2xl mx-auto px-4 py-12 space-y-8">
 
-        {/* Hero */}
-        <div className="text-center mb-10">
-          <div className="inline-block px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-6"
-            style={{ background:"rgba(79,70,229,0.2)", color:C.indigoLight, border:`1px solid rgba(79,70,229,0.3)` }}>
-            {lang==="RO"?"De ce Hirevo":lang==="NL"?"Waarom Hirevo":"Why Hirevo"}
+          {/* Hero */}
+          <div className="text-center">
+            <div className="inline-block px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-6"
+              style={{ background:"rgba(79,70,229,0.2)", color:C.indigoLight, border:"1px solid rgba(79,70,229,0.3)" }}>
+              {lang==="RO"?"De ce Hirevo":lang==="NL"?"Waarom Hirevo":"Why Hirevo"}
+            </div>
+            <h1 className="text-4xl font-black text-white mb-4 leading-tight">
+              {lang==="RO"?"Angajare directă. Fără intermediari."
+               :lang==="NL"?"Direct aanwerven. Zonder tussenpersonen."
+               :"Direct hiring. No middlemen."}
+            </h1>
+            <p className="text-slate-400 text-base leading-relaxed max-w-lg mx-auto">
+              {lang==="RO"?"Hirevo conectează companiile din Olanda și Germania direct cu muncitori verificați din Europa de Est — fără agenții, fără comisioane ascunse."
+               :lang==="NL"?"Hirevo verbindt bedrijven in Nederland en Duitsland rechtstreeks met geverifieerde werknemers uit Oost-Europa — zonder bureaus, zonder verborgen kosten."
+               :"Hirevo connects companies in the Netherlands and Germany directly with verified workers from Eastern Europe — no agencies, no hidden fees."}
+            </p>
           </div>
-          <h1 className="text-4xl font-black text-white mb-4 leading-tight">
-            {lang==="RO"?"Angajare directă. Fără intermediari."
-             :lang==="NL"?"Direct aanwerven. Zonder tussenpersonen."
-             :"Direct hiring. No middlemen."}
-          </h1>
-          <p className="text-slate-400 text-base leading-relaxed max-w-lg mx-auto">
-            {lang==="RO"?"Hirevo conectează companiile din Olanda și Germania direct cu muncitori verificați din Europa de Est — fără agenții, fără comisioane ascunse."
-             :lang==="NL"?"Hirevo verbindt bedrijven in Nederland en Duitsland rechtstreeks met geverifieerde werknemers uit Oost-Europa — zonder bureaus, zonder verborgen kosten."
-             :"Hirevo connects companies in the Netherlands and Germany directly with verified workers from Eastern Europe — no agencies, no hidden fees."}
-          </p>
-        </div>
 
-        {/* Comparatie */}
-        <div className="rounded-2xl overflow-hidden border border-slate-700">
-          <div className="grid grid-cols-2">
-            <div className="p-5 border-r border-slate-700" style={{ background:"rgba(220,38,38,0.08)" }}>
-              <p className="text-xs font-black uppercase tracking-widest text-red-400 mb-4">
-                {lang==="RO"?"Modelul vechi":lang==="NL"?"Het oude model":"The old model"}
+          {/* Comparatie */}
+          <div className="rounded-2xl overflow-hidden border border-slate-700">
+            <div className="grid grid-cols-2">
+              <div className="p-5 border-r border-slate-700" style={{ background:"rgba(220,38,38,0.08)" }}>
+                <p className="text-xs font-black uppercase tracking-widest text-red-400 mb-4">
+                  {lang==="RO"?"Modelul vechi":lang==="NL"?"Het oude model":"The old model"}
+                </p>
+                <div className="space-y-3">
+                  {(lang==="RO" ? [
+                    "Agenții care iau 15–25% comision",
+                    "Luni de așteptare pentru un candidat",
+                    "Nu știi cu cine vorbești înainte să plătești",
+                    "CV-uri irelevante, fără filtre",
+                    "Contracte cu clauze ascunse",
+                  ] : lang==="NL" ? [
+                    "Bureaus die 15–25% commissie nemen",
+                    "Maanden wachten op een kandidaat",
+                    "Niet weten met wie je praat voor je betaalt",
+                    "Irrelevante cv's, geen filters",
+                    "Contracten met verborgen clausules",
+                  ] : [
+                    "Agencies taking 15–25% commission",
+                    "Months of waiting for one candidate",
+                    "Not knowing who you're hiring before you pay",
+                    "Irrelevant CVs with no filtering",
+                    "Contracts with hidden clauses",
+                  ]).map((item, i) => (
+                    <div key={i} className="flex items-start gap-2 text-sm text-slate-400">
+                      <span className="text-red-400 font-black flex-shrink-0 mt-0.5">✕</span>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="p-5" style={{ background:"rgba(16,185,129,0.08)" }}>
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-400 mb-4">Hirevo</p>
+                <div className="space-y-3">
+                  {(lang==="RO" ? [
+                    "Taxă lunară fixă, fără comisioane",
+                    "Acces instant la baza de date",
+                    "Profiluri complete înainte să contactezi",
+                    "Filtre BSN, cazare, disponibilitate",
+                    "Contact direct — tu decizi",
+                  ] : lang==="NL" ? [
+                    "Vaste maandelijkse vergoeding, geen commissie",
+                    "Directe toegang tot de database",
+                    "Volledige profielen voor je contact opneemt",
+                    "BSN, huisvesting, beschikbaarheidsfilters",
+                    "Direct contact — jij beslist",
+                  ] : [
+                    "Flat monthly fee, zero commission",
+                    "Instant access to the database",
+                    "Full profiles before you contact anyone",
+                    "BSN, housing, availability filters",
+                    "Direct contact — you decide",
+                  ]).map((item, i) => (
+                    <div key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                      <span className="text-emerald-400 font-black flex-shrink-0 mt-0.5">✓</span>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Calculator */}
+          <div className="rounded-2xl border border-slate-700 overflow-hidden" style={{ background:"rgba(255,255,255,0.03)" }}>
+            <div className="px-6 pt-6 pb-6">
+              <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color:C.indigoLight }}>
+                {lang==="RO"?"Calculator economii":lang==="NL"?"Besparingscalculator":"Savings calculator"}
               </p>
-              <div className="space-y-3">
-                {(lang==="RO" ? [
-                  "Agenții care iau 15–25% comision",
-                  "Luni de așteptare pentru un candidat",
-                  "Nu știi cu cine vorbești înainte să plătești",
-                  "CV-uri irelevante, fără filtre",
-                  "Contracte cu clauze ascunse",
-                ] : lang==="NL" ? [
-                  "Bureaus die 15–25% commissie nemen",
-                  "Maanden wachten op een kandidaat",
-                  "Niet weten met wie je praat voor je betaalt",
-                  "Irrelevante cv's, geen filters",
-                  "Contracten met verborgen clausules",
-                ] : [
-                  "Agencies taking 15–25% commission",
-                  "Months of waiting for one candidate",
-                  "Not knowing who you're hiring before you pay",
-                  "Irrelevant CVs with no filtering",
-                  "Contracts with hidden clauses",
-                ]).map((item, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm text-slate-400">
-                    <span className="text-red-400 font-black flex-shrink-0 mt-0.5">✕</span>
-                    {item}
+              <h2 className="text-xl font-black text-white mb-1">
+                {lang==="RO"?"Cât economisești lunar față de o agenție?"
+                 :lang==="NL"?"Hoeveel bespaar je maandelijks vs. een bureau?"
+                 :"How much do you save monthly vs. an agency?"}
+              </h2>
+              <p className="text-slate-400 text-sm mb-6">
+                {lang==="RO"?"Ajustează parametrii și vezi economiile în timp real."
+                 :lang==="NL"?"Pas de parameters aan en zie de besparingen in realtime."
+                 :"Adjust the parameters and see savings in real time."}
+              </p>
+
+              <div className="space-y-5">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-xs text-slate-400">{lang==="RO"?"Salariu brut lunar / angajat":lang==="NL"?"Bruto maandloon / werknemer":"Gross monthly salary / employee"}</span>
+                    <span className="text-xs font-black text-white">{fmt(wSalary)}</span>
+                  </div>
+                  <input type="range" min="1500" max="5000" step="100" value={wSalary}
+                    onChange={e => setWSalary(parseInt(e.target.value))}
+                    className="w-full" style={{ accentColor:C.indigo }} />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-xs text-slate-400">{lang==="RO"?"Angajări noi / lună":lang==="NL"?"Nieuwe aanwervingen / maand":"New hires / month"}</span>
+                    <span className="text-xs font-black text-white">{wHires}</span>
+                  </div>
+                  <input type="range" min="1" max="20" step="1" value={wHires}
+                    onChange={e => setWHires(parseInt(e.target.value))}
+                    className="w-full" style={{ accentColor:C.indigo }} />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-xs text-slate-400">{lang==="RO"?"Comision agenție":lang==="NL"?"Bureaucommissie":"Agency commission"}</span>
+                    <span className="text-xs font-black text-white">{wComm}%</span>
+                  </div>
+                  <input type="range" min="10" max="30" step="1" value={wComm}
+                    onChange={e => setWComm(parseInt(e.target.value))}
+                    className="w-full" style={{ accentColor:C.indigo }} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mt-6">
+                {[
+                  { label: lang==="RO"?"Cost agenție / lună":lang==="NL"?"Bureaukosten / maand":"Agency cost / month", val: fmt(agCost), color:"#DC2626" },
+                  { label: "Hirevo / lună", val: fmt(hCost), color:C.indigoLight },
+                  { label: lang==="RO"?"Economii / lună":lang==="NL"?"Besparing / maand":"Savings / month", val: savings > 0 ? fmt(savings) : "—", color:"#10B981" },
+                ].map((m, i) => (
+                  <div key={i} className="rounded-xl p-3 text-center" style={{ background:"rgba(255,255,255,0.05)" }}>
+                    <div className="text-xs text-slate-400 mb-1">{m.label}</div>
+                    <div className="text-lg font-black" style={{ color:m.color }}>{m.val}</div>
                   </div>
                 ))}
               </div>
-            </div>
-            <div className="p-5" style={{ background:"rgba(16,185,129,0.08)" }}>
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-400 mb-4">Hirevo</p>
-              <div className="space-y-3">
-                {(lang==="RO" ? [
-                  "Taxă lunară fixă, fără comisioane",
-                  "Acces instant la baza de date",
-                  "Profiluri complete înainte să contactezi",
-                  "Filtre BSN, cazare, disponibilitate",
-                  "Contact direct — tu decizi",
-                ] : lang==="NL" ? [
-                  "Vaste maandelijkse vergoeding, geen commissie",
-                  "Directe toegang tot de database",
-                  "Volledige profielen voor je contact opneemt",
-                  "BSN, huisvesting, beschikbaarheidsfilters",
-                  "Direct contact — jij beslist",
-                ] : [
-                  "Flat monthly fee, zero commission",
-                  "Instant access to the database",
-                  "Full profiles before you contact anyone",
-                  "BSN, housing, availability filters",
-                  "Direct contact — you decide",
-                ]).map((item, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                    <span className="text-emerald-400 font-black flex-shrink-0 mt-0.5">✓</span>
-                    {item}
+
+              <div className="mt-5 space-y-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-400 w-20 text-right">{lang==="RO"?"Agenție":lang==="NL"?"Bureau":"Agency"}</span>
+                  <div className="flex-1 rounded-full h-3 overflow-hidden" style={{ background:"rgba(255,255,255,0.1)" }}>
+                    <div className="h-full rounded-full" style={{ background:"#DC2626", width: Math.round((agCost/maxVal)*100)+"%" }} />
                   </div>
-                ))}
+                  <span className="text-xs font-black text-red-400 w-16">{fmt(agCost)}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-400 w-20 text-right">Hirevo</span>
+                  <div className="flex-1 rounded-full h-3 overflow-hidden" style={{ background:"rgba(255,255,255,0.1)" }}>
+                    <div className="h-full rounded-full" style={{ background:"#10B981", width: Math.round((hCost/maxVal)*100)+"%" }} />
+                  </div>
+                  <span className="text-xs font-black text-emerald-400 w-16">{fmt(hCost)}</span>
+                </div>
               </div>
+
+              <div className="mt-5 rounded-xl p-4 flex items-center justify-between" style={{ background:"rgba(16,185,129,0.15)", border:"1px solid rgba(16,185,129,0.3)" }}>
+                <div>
+                  <div className="text-xs text-emerald-400 font-bold mb-1">
+                    {lang==="RO"?"Economii anuale estimate":lang==="NL"?"Geschatte jaarlijkse besparing":"Estimated annual savings"}
+                  </div>
+                  <div className="text-3xl font-black text-emerald-400">{annual > 0 ? fmt(annual) : "—"}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-emerald-400 font-bold mb-1">ROI</div>
+                  <div className="text-2xl font-black text-emerald-400">{roi > 0 ? roi+"%" : "—"}</div>
+                </div>
+              </div>
+
+              <button onClick={() => go("companyReg")}
+                className="w-full mt-5 py-3 rounded-xl font-black text-white text-sm hover:opacity-90 transition-opacity"
+                style={{ background:C.indigo }}>
+                {lang==="RO"?"Vezi planurile de preț":lang==="NL"?"Bekijk prijsplannen":"See pricing plans"} →
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Calculator */}
-        <div className="rounded-2xl border border-slate-700 overflow-hidden" style={{ background:"rgba(255,255,255,0.03)" }}>
-          <div className="px-6 pt-6 pb-4">
-            <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color:C.indigoLight }}>
-              {lang==="RO"?"Calculator economii":lang==="NL"?"Besparingscalculator":"Savings calculator"}
+          {/* 3 piloni */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { icon:"🎯", title: lang==="RO"?"Direct":lang==="NL"?"Direct":"Direct",
+                desc: lang==="RO"?"Contactezi muncitorul direct. Fără intermediar care să filtreze, să întârzie sau să negocieze în locul tău."
+                     :lang==="NL"?"Je neemt direct contact op met de werknemer. Geen tussenpersoon die filtert, vertraagt of voor jou onderhandelt."
+                     :"You contact the worker directly. No middleman filtering, delaying or negotiating on your behalf." },
+              { icon:"✅", title: lang==="RO"?"Verificat":lang==="NL"?"Geverifieerd":"Verified",
+                desc: lang==="RO"?"Fiecare profil include experiență reală, documente UE și verificare biometrică opțională."
+                     :lang==="NL"?"Elk profiel bevat echte ervaring, EU-documenten en optionele biometrische ID-verificatie."
+                     :"Every profile includes real experience, EU documents and optional biometric ID verification." },
+              { icon:"💶", title: lang==="RO"?"Transparent":lang==="NL"?"Transparant":"Transparent",
+                desc: lang==="RO"?"Știi exact cât plătești înainte să începi. Nicio surpriză, niciun comision per angajare."
+                     :lang==="NL"?"Je weet precies wat je betaalt voordat je begint. Geen verrassingen, geen commissie per aanwerving."
+                     :"You know exactly what you pay before you start. No surprises, no per-hire commission." },
+            ].map((p, i) => (
+              <div key={i} className="rounded-2xl p-5 border border-slate-700" style={{ background:"rgba(255,255,255,0.03)" }}>
+                <div className="text-3xl mb-3">{p.icon}</div>
+                <h3 className="font-black text-white text-base mb-2">{p.title}</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer CTA */}
+          <div className="rounded-2xl p-7 text-center border border-slate-700" style={{ background:"rgba(79,70,229,0.1)" }}>
+            <h3 className="font-black text-white text-xl mb-2">
+              {lang==="RO"?"Gata să angajezi direct?":lang==="NL"?"Klaar om direct aan te werven?":"Ready to hire directly?"}
+            </h3>
+            <p className="text-slate-400 text-sm mb-5">
+              {lang==="RO"?"Creează un cont de companie și accesează toată baza de date."
+               :lang==="NL"?"Maak een bedrijfsaccount aan en krijg toegang tot de volledige database."
+               :"Create a company account and access the full database."}
             </p>
-            <h2 className="text-xl font-black text-white mb-1">
-              {lang==="RO"?"Cât economisești lunar față de o agenție?"
-               :lang==="NL"?"Hoeveel bespaar je maandelijks vs. een bureau?"
-               :"How much do you save monthly vs. an agency?"}
-            </h2>
-            <p className="text-slate-400 text-sm mb-6">
-              {lang==="RO"?"Ajustează parametrii și vezi economiile în timp real."
-               :lang==="NL"?"Pas de parameters aan en zie de besparingen in realtime."
-               :"Adjust the parameters and see savings in real time."}
-            </p>
-
-            {/* Sliders */}
-            <div className="space-y-5">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-xs text-slate-400">{lang==="RO"?"Salariu brut lunar / angajat":lang==="NL"?"Bruto maandloon / werknemer":"Gross monthly salary / employee"}</span>
-                  <span className="text-xs font-black text-white">{fmt(wSalary)}</span>
-                </div>
-                <input type="range" min="1500" max="5000" step="100" value={wSalary}
-                  onChange={e => setWSalary(parseInt(e.target.value))}
-                  className="w-full" style={{ accentColor:C.indigo }} />
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-xs text-slate-400">{lang==="RO"?"Angajări noi / lună":lang==="NL"?"Nieuwe aanwervingen / maand":"New hires / month"}</span>
-                  <span className="text-xs font-black text-white">{wHires}</span>
-                </div>
-                <input type="range" min="1" max="20" step="1" value={wHires}
-                  onChange={e => setWHires(parseInt(e.target.value))}
-                  className="w-full" style={{ accentColor:C.indigo }} />
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-xs text-slate-400">{lang==="RO"?"Comision agenție":lang==="NL"?"Bureaucommissie":"Agency commission"}</span>
-                  <span className="text-xs font-black text-white">{wComm}%</span>
-                </div>
-                <input type="range" min="10" max="30" step="1" value={wComm}
-                  onChange={e => setWComm(parseInt(e.target.value))}
-                  className="w-full" style={{ accentColor:C.indigo }} />
-              </div>
-            </div>
-
-            {/* Metrics */}
-            <div className="grid grid-cols-3 gap-3 mt-6">
-              {[
-                { label: lang==="RO"?"Cost agenție / lună":lang==="NL"?"Bureaukosten / maand":"Agency cost / month", val: fmt(agCost), color:"#DC2626" },
-                { label: "Hirevo / lună", val: fmt(hCost), color:C.indigoLight },
-                { label: lang==="RO"?"Economii / lună":lang==="NL"?"Besparing / maand":"Savings / month", val: savings > 0 ? fmt(savings) : "—", color:"#10B981" },
-              ].map((m, i) => (
-                <div key={i} className="rounded-xl p-3 text-center" style={{ background:"rgba(255,255,255,0.05)" }}>
-                  <div className="text-xs text-slate-400 mb-1">{m.label}</div>
-                  <div className="text-lg font-black" style={{ color:m.color }}>{m.val}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Bare */}
-            <div className="mt-5 space-y-2">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400 w-20 text-right">{lang==="RO"?"Agenție":lang==="NL"?"Bureau":"Agency"}</span>
-                <div className="flex-1 rounded-full h-3 overflow-hidden" style={{ background:"rgba(255,255,255,0.1)" }}>
-                  <div className="h-full rounded-full transition-all duration-300" style={{ background:"#DC2626", width: Math.round((agCost/maxVal)*100)+"%" }} />
-                </div>
-                <span className="text-xs font-black text-red-400 w-16">{fmt(agCost)}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400 w-20 text-right">Hirevo</span>
-                <div className="flex-1 rounded-full h-3 overflow-hidden" style={{ background:"rgba(255,255,255,0.1)" }}>
-                  <div className="h-full rounded-full transition-all duration-300" style={{ background:"#10B981", width: Math.round((hCost/maxVal)*100)+"%" }} />
-                </div>
-                <span className="text-xs font-black text-emerald-400 w-16">{fmt(hCost)}</span>
-              </div>
-            </div>
-
-            {/* Economii anuale */}
-            <div className="mt-5 rounded-xl p-4 flex items-center justify-between" style={{ background:"rgba(16,185,129,0.15)", border:"1px solid rgba(16,185,129,0.3)" }}>
-              <div>
-                <div className="text-xs text-emerald-400 font-bold mb-1">
-                  {lang==="RO"?"Economii anuale estimate":lang==="NL"?"Geschatte jaarlijkse besparing":"Estimated annual savings"}
-                </div>
-                <div className="text-3xl font-black text-emerald-400">{annual > 0 ? fmt(annual) : "—"}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs text-emerald-400 font-bold mb-1">ROI</div>
-                <div className="text-2xl font-black text-emerald-400">{roi > 0 ? roi+"%" : "—"}</div>
-              </div>
-            </div>
-
             <button onClick={() => go("companyReg")}
-              className="w-full mt-5 py-3 rounded-xl font-black text-white text-sm hover:opacity-90 transition-opacity"
+              className="px-8 py-3 rounded-xl font-black text-white text-sm hover:opacity-90 transition-opacity"
               style={{ background:C.indigo }}>
               {lang==="RO"?"Vezi planurile de preț":lang==="NL"?"Bekijk prijsplannen":"See pricing plans"} →
             </button>
           </div>
-        </div>
 
-        {/* 3 piloni */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { icon:"🎯", title: lang==="RO"?"Direct":lang==="NL"?"Direct":"Direct",
-              desc: lang==="RO"?"Contactezi muncitorul direct. Fără intermediar care să filtreze, să întârzie sau să negocieze în locul tău."
-                   :lang==="NL"?"Je neemt direct contact op met de werknemer. Geen tussenpersoon die filtert, vertraagt of voor jou onderhandelt."
-                   :"You contact the worker directly. No middleman filtering, delaying or negotiating on your behalf." },
-            { icon:"✅", title: lang==="RO"?"Verificat":lang==="NL"?"Geverifieerd":"Verified",
-              desc: lang==="RO"?"Fiecare profil include experiență reală, documente UE și verificare biometrică opțională."
-                   :lang==="NL"?"Elk profiel bevat echte ervaring, EU-documenten en optionele biometrische ID-verificatie."
-                   :"Every profile includes real experience, EU documents and optional biometric ID verification." },
-            { icon:"💶", title: lang==="RO"?"Transparent":lang==="NL"?"Transparant":"Transparent",
-              desc: lang==="RO"?"Știi exact cât plătești înainte să începi. Nicio surpriză, niciun comision per angajare."
-                   :lang==="NL"?"Je weet precies wat je betaalt voordat je begint. Geen verrassingen, geen commissie per aanwerving."
-                   :"You know exactly what you pay before you start. No surprises, no per-hire commission." },
-          ].map((p, i) => (
-            <div key={i} className="rounded-2xl p-5 border border-slate-700" style={{ background:"rgba(255,255,255,0.03)" }}>
-              <div className="text-3xl mb-3">{p.icon}</div>
-              <h3 className="font-black text-white text-base mb-2">{p.title}</h3>
-              <p className="text-slate-400 text-xs leading-relaxed">{p.desc}</p>
-            </div>
-          ))}
         </div>
-
-        {/* Footer CTA */}
-        <div className="rounded-2xl p-7 text-center border border-slate-700" style={{ background:"rgba(79,70,229,0.1)" }}>
-          <h3 className="font-black text-white text-xl mb-2">
-            {lang==="RO"?"Gata să angajezi direct?":lang==="NL"?"Klaar om direct aan te werven?":"Ready to hire directly?"}
-          </h3>
-          <p className="text-slate-400 text-sm mb-5">
-            {lang==="RO"?"Creează un cont de companie și accesează toată baza de date."
-             :lang==="NL"?"Maak een bedrijfsaccount aan en krijg toegang tot de volledige database."
-             :"Create a company account and access the full database."}
-          </p>
-          <button onClick={() => go("companyReg")}
-            className="px-8 py-3 rounded-xl font-black text-white text-sm hover:opacity-90 transition-opacity"
-            style={{ background:C.indigo }}>
-            {lang==="RO"?"Vezi planurile de preț":lang==="NL"?"Bekijk prijsplannen":"See pricing plans"} →
-          </button>
-        </div>
-
       </div>
-    </div>
     );
   }
 
