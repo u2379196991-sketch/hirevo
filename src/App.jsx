@@ -1870,22 +1870,6 @@ export default function App() {
                 setAuthLoading(false);
                 if (error) { setAuthError(error.message); return; }
                 if (data?.user) {
-                  await supabase.from("workers").insert([{
-                    user_id: data.user.id,
-                    name: wForm.name, email: wForm.email.trim().toLowerCase(),
-                    role: wForm.role, sector: wForm.sector, experience: wForm.experience,
-                    current_loc: wForm.currentLoc, current_city: wForm.currentCity,
-                    open_to_relocation: wForm.openToRelocation,
-                    target_countries: wForm.targetCountries,
-                    needs_housing: wForm.needsHousing,
-                    availability: wForm.availability,
-                    employment_type: wForm.employmentType,
-                    available_from: wForm.availableFrom,
-                    bio: wForm.bio, phone: wForm.phone,
-                    skills: wForm.skills,
-                    languages: wForm.languages.map(l=>l.name),
-                    is_visible: true,
-                  }]);
                   setWorkerProfile({...wForm});
                   setRegPassword(""); setRegPasswordConfirm("");
                   setAuthSuccess("✓ Check your email to confirm your account, then you're live!");
@@ -2473,17 +2457,11 @@ export default function App() {
             const { data, error } = await supabase.auth.signUp({
               email: cForm.email.trim().toLowerCase(),
               password: regPassword,
-              options: { data: { role:"company", compName:cForm.compName } }
+              options: { data: { role:"company", ...cForm } }
             });
             setAuthLoading(false);
             if (error) { setAuthError(error.message); return; }
             if (data?.user) {
-              await supabase.from("companies").insert([{
-                user_id: data.user.id,
-                comp_name: cForm.compName, email: cForm.email.trim().toLowerCase(),
-                kvk: cForm.kvk, phone: cForm.phone, address: cForm.address,
-                dest_country: cForm.destCountry, industry: cForm.industry,
-              }]);
               setCompanyProfile({...cForm});
               setRegPassword(""); setRegPasswordConfirm("");
               setAuthSuccess("✓ Check your email to confirm your account!");
